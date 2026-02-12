@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+
+# Database
+*.db
+
+# Uploaded costumes
+backend/costumes/*
+!backend/costumes/.gitkeep
+
+# Credentials (sensitive)
+backend/access_codes.txt
+
+# Environment
+.env
+
+# OS
+.DS_Store
