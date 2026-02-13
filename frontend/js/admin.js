@@ -1,4 +1,12 @@
 var Admin = {
+  STATES: ['setup', 'voting', 'counting', 'reveal'],
+  STATE_INFO: {
+    setup:    { label: 'Setup',    desc: 'Guests upload costumes and set their names.' },
+    voting:   { label: 'Voting',   desc: 'Voting is open. Costumes are locked.' },
+    counting: { label: 'Counting', desc: 'Voting closed. Results hidden.' },
+    reveal:   { label: 'Reveal',   desc: 'Results are visible to everyone!' }
+  },
+
   onEnter: function() {
     if (!App.user || !App.user.is_admin) {
       App.navigate('vote');
@@ -9,75 +17,94 @@ var Admin = {
 
   load: function() {
     var self = this;
-    Promise.all([
-      API.getVotingStatus(),
-      API.getResults().then(function() { return true; }).catch(function() { return false; })
-    ]).then(function(results) {
-      self.render(!results[0].voting_closed, results[1]);
+    API.getCompetitionStatus().then(function(data) {
+      self.render(data.status);
     });
   },
 
-  render: function(votingOpen, resultsVisible) {
+  render: function(currentStatus) {
     var container = $('#admin-content');
+    var idx = this.STATES.indexOf(currentStatus);
+    var info = this.STATE_INFO[currentStatus];
+    var isFirst = idx === 0;
+    var isLast = idx === this.STATES.length - 1;
     var self = this;
 
-    container.innerHTML =
-      '<div class="admin-card">' +
-        '<div class="admin-card-header">' +
-          '<div>' +
-            '<h3>Voting</h3>' +
-            '<p><span class="status-dot ' + (votingOpen ? 'on' : 'off') + '"></span>' +
-              (votingOpen ? 'Open — guests can vote' : 'Closed — voting is locked') + '</p>' +
-          '</div>' +
-          '<label class="toggle">' +
-            '<input type="checkbox" id="toggle-voting" ' + (votingOpen ? 'checked' : '') + '>' +
-            '<span class="toggle-slider"></span>' +
-          '</label>' +
-        '</div>' +
-      '</div>' +
-      '<div class="admin-card">' +
-        '<div class="admin-card-header">' +
-          '<div>' +
-            '<h3>Results</h3>' +
-            '<p><span class="status-dot ' + (resultsVisible ? 'on' : 'off') + '"></span>' +
-              (resultsVisible ? 'Visible — everyone can see' : 'Hidden — only you can see') + '</p>' +
-          '</div>' +
-          '<label class="toggle">' +
-            '<input type="checkbox" id="toggle-results" ' + (resultsVisible ? 'checked' : '') + '>' +
-            '<span class="toggle-slider"></span>' +
-          '</label>' +
-        '</div>' +
+    // Phase stepper dots
+    var dots = this.STATES.map(function(s, i) {
+      var cls = 'phase-dot';
+      if (i < idx) cls += ' done';
+      else if (i === idx) cls += ' active';
+      return '<div class="' + cls + '">' +
+        '<div class="phase-dot-circle"></div>' +
+        '<span class="phase-dot-label">' + self.STATE_INFO[s].label + '</span>' +
       '</div>';
+    }).join('<div class="phase-line' + '"></div>');
+
+    var html = '<div class="admin-card">' +
+      '<div class="phase-stepper">' + dots + '</div>' +
+    '</div>';
+
+    // Current phase info
+    html += '<div class="admin-card phase-info-card">' +
+      '<h3>' + info.label + '</h3>' +
+      '<p class="subtitle">' + info.desc + '</p>' +
+    '</div>';
+
+    // Actions
+    html += '<div class="admin-actions">';
+    if (!isLast) {
+      var nextInfo = this.STATE_INFO[this.STATES[idx + 1]];
+      html += '<button class="btn btn-primary" id="btn-advance">' +
+        'Advance to ' + nextInfo.label + '</button>';
+    } else {
+      html += '<p class="subtitle" style="text-align:center;margin:12px 0;">Competition complete!</p>';
+    }
+    if (!isFirst) {
+      var prevInfo = this.STATE_INFO[this.STATES[idx - 1]];
+      html += '<button class="btn btn-outline" id="btn-go-back" style="margin-top:8px;">' +
+        'Go back to ' + prevInfo.label + '</button>';
+    }
+    html += '</div>';
+
+    container.innerHTML = html;
 
     // Attach listeners
-    $('#toggle-voting').addEventListener('change', function() {
-      self.toggleVoting();
-    });
-
-    $('#toggle-results').addEventListener('change', function() {
-      self.toggleResults();
-    });
+    var advanceBtn = document.getElementById('btn-advance');
+    if (advanceBtn) {
+      advanceBtn.addEventListener('click', function() { self.advance(); });
+    }
+    var goBackBtn = document.getElementById('btn-go-back');
+    if (goBackBtn) {
+      goBackBtn.addEventListener('click', function() {
+        var prevStatus = self.STATES[idx - 1];
+        self.setStatus(prevStatus);
+      });
+    }
   },
 
-  toggleVoting: function() {
+  advance: function() {
     var self = this;
-    API.toggleVoting().then(function() {
-      self.load();
-      showToast('Voting updated', 'success');
+    API.advanceStatus().then(function(data) {
+      showToast('Advanced to ' + self.STATE_INFO[data.status].label, 'success');
+      self.render(data.status);
     }).catch(function(err) {
       showToast(err.detail, 'error');
       self.load();
     });
   },
 
-  toggleResults: function() {
+  setStatus: function(targetStatus) {
     var self = this;
-    API.toggleResults().then(function() {
-      self.load();
-      showToast('Results visibility updated', 'success');
-    }).catch(function(err) {
-      showToast(err.detail, 'error');
-      self.load();
+    confirmAction('Go back to ' + this.STATE_INFO[targetStatus].label + ' phase?').then(function(ok) {
+      if (!ok) return;
+      API.setStatus(targetStatus).then(function(data) {
+        showToast('Moved to ' + self.STATE_INFO[data.status].label, 'success');
+        self.render(data.status);
+      }).catch(function(err) {
+        showToast(err.detail, 'error');
+        self.load();
+      });
     });
   }
 };

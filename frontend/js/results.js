@@ -20,7 +20,9 @@ var Results = {
       self.renderResults(results);
     }).catch(function(err) {
       if (err.status === 403) {
-        self.renderLocked();
+        API.getCompetitionStatus().then(function(data) {
+          self.renderLocked(data.status);
+        });
       }
     });
   },
@@ -36,18 +38,24 @@ var Results = {
     var maxVotes = results[0].vote_count || 1;
     var self = this;
 
+    var rank = 0;
+    var prevVotes = -1;
     container.innerHTML = results.map(function(r, i) {
-      var isTop = i < 3;
+      if (r.vote_count !== prevVotes) {
+        rank++;
+        prevVotes = r.vote_count;
+      }
+      var isTop = rank <= 3;
       var pct = (r.vote_count / maxVotes) * 100;
 
       var html = '<div class="result-row' + (isTop ? ' top-three' : '') + '">';
 
       // Rank
       html += '<div class="result-rank">';
-      if (i === 0) html += '<span class="medal gold">1</span>';
-      else if (i === 1) html += '<span class="medal silver">2</span>';
-      else if (i === 2) html += '<span class="medal bronze">3</span>';
-      else html += '<span>' + (i + 1) + '</span>';
+      if (rank === 1) html += '<span class="medal gold">1</span>';
+      else if (rank === 2) html += '<span class="medal silver">2</span>';
+      else if (rank === 3) html += '<span class="medal bronze">3</span>';
+      else html += '<span>' + rank + '</span>';
       html += '</div>';
 
       // Photo
@@ -70,12 +78,15 @@ var Results = {
     }).join('');
   },
 
-  renderLocked: function() {
+  renderLocked: function(status) {
+    var msg = status === 'counting'
+      ? 'Results will be available soon!'
+      : 'Results are not available yet';
     $('#results-content').innerHTML =
       '<div class="results-locked">' +
         '<span class="lock-icon">🏆</span>' +
         '<h2>Results coming soon</h2>' +
-        '<p class="subtitle">The host will reveal the results when voting closes</p>' +
+        '<p class="subtitle">' + msg + '</p>' +
       '</div>';
   },
 

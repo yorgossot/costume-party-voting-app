@@ -25,6 +25,13 @@ def get_db() -> Generator[sqlite3.Connection]:
         conn.close()
 
 
+def get_competition_status(conn: sqlite3.Connection) -> str:
+    row = conn.execute(
+        "SELECT value FROM settings WHERE key = 'competition_status'"
+    ).fetchone()
+    return row["value"] if row else "setup"
+
+
 def init_db():
     conn = connect_to_db()  # Ensure the database file is created if it doesn't exist
     conn.executescript(
@@ -58,8 +65,8 @@ def init_db():
             value TEXT NOT NULL
         );
 
-        INSERT OR IGNORE INTO settings (key, value) VALUES ('voting_closed', 'false');
-        INSERT OR IGNORE INTO settings (key, value) VALUES ('results_visible', 'false');
+        INSERT OR IGNORE INTO settings (key, value) VALUES ('competition_status', 'setup');
+        DELETE FROM settings WHERE key IN ('voting_closed', 'results_visible');
     """
     )
     conn.commit()

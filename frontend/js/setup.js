@@ -144,7 +144,7 @@ var Setup = {
       showError('setup-error-2', err.detail);
     }).finally(function() {
       btn.disabled = false;
-      btn.textContent = 'Upload & Start Voting';
+      btn.textContent = 'Upload & Continue';
     });
   }
 };

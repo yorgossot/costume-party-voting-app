@@ -3,6 +3,7 @@ from pathlib import Path
 
 # --------- GENERAL CONFIGURATION ---------
 MAX_VOTES_PER_USER = 5
+COMPETITION_STATES = ["setup", "voting", "counting", "reveal"]
 MAX_PHOTO_SIZE = 60 * 1024 * 1024  # 60 MB
 MAX_PHOTO_WIDTH = 1920
 MIN_FIELD_LENGTH = 4

@@ -3,7 +3,7 @@ var Vote = {
   votedIds: {},
   votesUsed: 0,
   myUserId: null,
-  votingClosed: false,
+  competitionStatus: 'setup',
   refreshTimer: null,
 
   HEART_SVG: '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
@@ -39,7 +39,7 @@ var Vote = {
     Promise.all([
       API.getCostumes(),
       API.me(),
-      API.getVotingStatus()
+      API.getCompetitionStatus()
     ]).then(function(results) {
       self.costumes = results[0];
       var me = results[1];
@@ -47,7 +47,7 @@ var Vote = {
       self.votesUsed = me.votes_used;
       self.votedIds = {};
       me.voted_costume_ids.forEach(function(id) { self.votedIds[id] = true; });
-      self.votingClosed = results[2].voting_closed;
+      self.competitionStatus = results[2].status;
       App.user = me;
       self.render();
     }).catch(function() {
@@ -63,9 +63,15 @@ var Vote = {
     // Update votes counter
     $('#votes-text').textContent = this.votesUsed + '/5';
 
-    // Voting closed banner
-    if (this.votingClosed) banner.classList.remove('hidden');
-    else banner.classList.add('hidden');
+    // Voting status banner
+    var bannerText = $('#voting-banner-text');
+    if (this.competitionStatus !== 'voting') {
+      banner.classList.remove('hidden');
+      if (this.competitionStatus === 'setup') bannerText.textContent = 'Voting has not started yet';
+      else bannerText.textContent = 'Voting is closed';
+    } else {
+      banner.classList.add('hidden');
+    }
 
     if (this.costumes.length === 0) {
       grid.innerHTML = '';
@@ -101,7 +107,7 @@ var Vote = {
   renderCard: function(costume) {
     var isOwn = costume.user_id === this.myUserId;
     var isVoted = !!this.votedIds[costume.id];
-    var canVote = !isOwn && !this.votingClosed;
+    var canVote = !isOwn && this.competitionStatus === 'voting';
     var noVotesLeft = this.votesUsed >= 5 && !isVoted;
 
     var html = '<div class="costume-card" data-costume-id="' + costume.id + '">';
@@ -142,8 +148,8 @@ var Vote = {
       return;
     }
 
-    if (this.votingClosed) {
-      showToast('Voting is closed');
+    if (this.competitionStatus !== 'voting') {
+      showToast('Voting is not open');
       return;
     }
 
@@ -174,7 +180,7 @@ var Vote = {
     $('#modal-costume').textContent = costume.dressed_up_as || '';
 
     var voteBtn = $('#modal-vote-btn');
-    if (isOwn || this.votingClosed) {
+    if (isOwn || this.competitionStatus !== 'voting') {
       voteBtn.classList.add('hidden');
     } else {
       voteBtn.classList.remove('hidden');

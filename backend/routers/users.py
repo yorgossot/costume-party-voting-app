@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from auth import get_current_user, CurrentUser
-from database import get_db
+from database import get_db, get_competition_status
 from config import MIN_FIELD_LENGTH, MAX_FIELD_LENGTH
 
 router = APIRouter(prefix="/api")
@@ -88,8 +88,7 @@ def _set_user_field(
 ) -> dict:
     """
     Helper function to set a user field (display_name or dressed_up_as) with validation.
-    Ensures the field is valid, the value is the correct length, and that the field is
-    not already set (users cannot change these once set).
+    First-time setting is always allowed. Changing an existing value requires setup phase.
     """
     if field not in USER_FIELDS:
         raise HTTPException(status_code=400, detail=f"Unknown field: {field}")
@@ -101,9 +100,9 @@ def _set_user_field(
     row = conn.execute(
         f"SELECT {field} FROM users WHERE id = ?", (user["user_id"],)
     ).fetchone()
-    if row and row[field]:
+    if row and row[field] and get_competition_status(conn) != "setup":
         raise HTTPException(
-            status_code=400, detail=f"{field} already set and cannot be changed"
+            status_code=403, detail="Changes are only allowed during the setup phase"
         )
     conn.execute(f"UPDATE users SET {field} = ? WHERE id = ?", (value, user["user_id"]))
     conn.commit()

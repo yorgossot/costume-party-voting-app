@@ -105,11 +105,13 @@ var App = {
 var Home = {
   init: function() {},
 
+  competitionStatus: 'setup',
+
   onEnter: function() {
-    // Refresh user data
     var self = this;
-    API.me().then(function(user) {
-      App.user = user;
+    Promise.all([API.me(), API.getCompetitionStatus()]).then(function(results) {
+      App.user = results[0];
+      self.competitionStatus = results[1].status;
       self.render();
     });
   },
@@ -117,6 +119,7 @@ var Home = {
   render: function() {
     var u = App.user;
     var container = $('#home-content');
+    var isSetup = this.competitionStatus === 'setup';
 
     if (!u.costume) {
       container.innerHTML =
@@ -132,21 +135,25 @@ var Home = {
       '<div class="home-card">' +
         '<img src="' + u.costume.photo_url + '" class="home-photo" alt="Your costume">' +
         '<div class="home-info">' +
-          '<div class="home-name">' + this.escapeHtml(u.display_name || '') + '</div>' +
-          '<div class="home-costume-desc">' + this.escapeHtml(u.dressed_up_as || '') + '</div>' +
+          '<div class="home-editable" id="field-display-name">' +
+            '<span class="home-name">' + this.escapeHtml(u.display_name || '') + '</span>' +
+            (isSetup ? '<button class="btn-icon btn-edit" data-field="display_name" aria-label="Edit name">&#9998;</button>' : '') +
+          '</div>' +
+          '<div class="home-editable" id="field-dressed-up-as">' +
+            '<span class="home-costume-desc">' + this.escapeHtml(u.dressed_up_as || '') + '</span>' +
+            (isSetup ? '<button class="btn-icon btn-edit" data-field="dressed_up_as" aria-label="Edit costume name">&#9998;</button>' : '') +
+          '</div>' +
           '<div class="home-stats">' +
             '<span>Votes used: ' + u.votes_used + '/5</span>' +
           '</div>' +
-          '<div class="home-actions">' +
-            '<button class="btn btn-outline" id="btn-reupload">Change Photo</button>' +
-            '<button class="btn btn-danger" id="btn-delete-costume">Delete Costume</button>' +
-          '</div>' +
+          (isSetup ? '<div class="home-actions"><button class="btn btn-outline" id="btn-reupload">Change Photo</button></div>' : '') +
         '</div>' +
       '</div>';
 
+    if (!isSetup) return;
+
     var self = this;
     $('#btn-reupload').addEventListener('click', function() {
-      // Create a temporary file input
       var input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
@@ -170,18 +177,48 @@ var Home = {
       input.click();
     });
 
-    $('#btn-delete-costume').addEventListener('click', function() {
-      confirmAction('Delete your costume? This will also remove any votes for it.').then(function(ok) {
-        if (!ok) return;
-        showLoading();
-        API.deleteCostume().then(function() {
-          App.user.costume = null;
-          showToast('Costume deleted');
-          self.render();
-        }).catch(function(err) {
-          showToast(err.detail, 'error');
-        }).finally(function() {
-          hideLoading();
+    container.querySelectorAll('.btn-edit').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var field = btn.dataset.field;
+        var wrapper = btn.parentElement;
+        var currentVal = field === 'display_name' ? u.display_name : u.dressed_up_as;
+        var label = field === 'display_name' ? 'display name' : 'costume name';
+
+        wrapper.innerHTML =
+          '<div class="home-inline-edit">' +
+            '<input type="text" class="inline-edit-input" value="' + self.escapeHtml(currentVal || '') + '" maxlength="30">' +
+            '<button class="btn btn-sm btn-primary inline-edit-save">Save</button>' +
+            '<button class="btn btn-sm btn-secondary inline-edit-cancel">Cancel</button>' +
+          '</div>';
+
+        var inp = wrapper.querySelector('.inline-edit-input');
+        inp.focus();
+        inp.select();
+
+        var apiFn = field === 'display_name' ? API.setDisplayName : API.setDressedUpAs;
+        var userKey = field;
+
+        function save() {
+          var val = inp.value.trim();
+          if (!val || val === currentVal) { self.render(); return; }
+          showLoading();
+          apiFn.call(API, val).then(function(data) {
+            App.user[userKey] = data[userKey];
+            showToast('Updated!', 'success');
+            self.render();
+          }).catch(function(err) {
+            showToast(err.detail, 'error');
+            self.render();
+          }).finally(function() {
+            hideLoading();
+          });
+        }
+
+        wrapper.querySelector('.inline-edit-save').addEventListener('click', save);
+        wrapper.querySelector('.inline-edit-cancel').addEventListener('click', function() { self.render(); });
+        inp.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter') save();
+          if (e.key === 'Escape') self.render();
         });
       });
     });

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 from auth import get_current_user, CurrentUser
 from config import MAX_VOTES_PER_USER
-from database import get_db
+from database import get_db, get_competition_status
 
 router = APIRouter(prefix="/api")
 
@@ -23,11 +23,8 @@ def vote(
     conn.execute("BEGIN IMMEDIATE")
 
     try:
-        setting = conn.execute(
-            "SELECT value FROM settings WHERE key = 'voting_closed'"
-        ).fetchone()
-        if setting and setting["value"] == "true":
-            raise HTTPException(status_code=403, detail="Voting is closed")
+        if get_competition_status(conn) != "voting":
+            raise HTTPException(status_code=403, detail="Voting is not open")
 
         costume = conn.execute(
             "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
@@ -76,11 +73,8 @@ def unvote(
     conn: sqlite3.Connection = Depends(get_db),
 ):
 
-    setting = conn.execute(
-        "SELECT value FROM settings WHERE key = 'voting_closed'"
-    ).fetchone()
-    if setting and setting["value"] == "true":
-        raise HTTPException(status_code=403, detail="Voting is closed")
+    if get_competition_status(conn) != "voting":
+        raise HTTPException(status_code=403, detail="Voting is not open")
 
     costume = conn.execute(
         "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
@@ -112,20 +106,9 @@ def unvote(
     return {"success": True, "votes_remaining": MAX_VOTES_PER_USER - count}
 
 
-@router.get("/voting-status")
-def voting_status(conn: sqlite3.Connection = Depends(get_db)):
-    setting = conn.execute(
-        "SELECT value FROM settings WHERE key = 'voting_closed'"
-    ).fetchone()
-    return {"voting_closed": setting and setting["value"] == "true"}
-
-
 @router.get("/results")
 def results(conn: sqlite3.Connection = Depends(get_db)):
-    setting = conn.execute(
-        "SELECT value FROM settings WHERE key = 'results_visible'"
-    ).fetchone()
-    if not setting or setting["value"] != "true":
+    if get_competition_status(conn) != "reveal":
         raise HTTPException(status_code=403, detail="Results are not available yet")
 
     rows = conn.execute(

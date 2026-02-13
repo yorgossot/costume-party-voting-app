@@ -37,14 +37,14 @@
     </div>
   </div>
 
-  <!-- Delete confirmation modal -->
+  <!-- Confirmation modal -->
   <div id="confirm-modal" class="modal hidden">
     <div class="modal-backdrop"></div>
     <div class="confirm-dialog">
       <p id="confirm-text">Are you sure?</p>
       <div class="confirm-actions">
         <button id="confirm-cancel" class="btn btn-secondary">Cancel</button>
-        <button id="confirm-ok" class="btn btn-danger">Delete</button>
+        <button id="confirm-ok" class="btn btn-primary">Proceed</button>
       </div>
     </div>
   </div>
@@ -150,7 +150,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="banner-icon">
         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
       </svg>
-      Voting is closed
+      <span id="voting-banner-text">Voting is closed</span>
     </div>
     <div id="costume-grid" class="costume-grid"></div>
     <div id="no-costumes" class="empty-state hidden">

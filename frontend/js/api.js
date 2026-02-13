@@ -41,18 +41,17 @@ var API = {
     fd.append('file', file);
     return this.upload('/upload-costume', fd);
   },
-  deleteCostume: function() { return this.del('/costume'); },
   getCostumes: function() { return this.get('/costumes'); },
 
   // Voting
   vote: function(id) { return this.post('/vote', { costume_id: id }); },
   unvote: function(id) { return this.post('/unvote', { costume_id: id }); },
-  getVotingStatus: function() { return this.get('/voting-status'); },
+  getCompetitionStatus: function() { return this.get('/competition-status'); },
   getResults: function() { return this.get('/results'); },
 
   // Admin
-  toggleVoting: function() { return this.post('/admin/toggle-voting'); },
-  toggleResults: function() { return this.post('/admin/toggle-result-visibility'); },
+  advanceStatus: function() { return this.post('/admin/advance-status'); },
+  setStatus: function(status) { return this.post('/admin/set-status', { status: status }); },
 
   // Token management
   setToken: function(token) {

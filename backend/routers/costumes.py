@@ -10,7 +10,7 @@ register_heif_opener()
 
 from auth import get_current_user, CurrentUser
 from config import COSTUMES_DIR, ALLOWED_CONTENT_TYPES, MAX_PHOTO_SIZE, MAX_PHOTO_WIDTH
-from database import get_db
+from database import get_db, get_competition_status
 from routers.users import get_display_name, get_dressed_up_as
 
 router = APIRouter(prefix="/api")
@@ -26,6 +26,15 @@ async def upload_costume(
         raise HTTPException(
             status_code=400,
             detail="Must set display name and dressed up as before uploading costume",
+        )
+
+    existing = conn.execute(
+        "SELECT id FROM costumes WHERE user_id = ?", (user["user_id"],)
+    ).fetchone()
+    if existing and get_competition_status(conn) != "setup":
+        raise HTTPException(
+            status_code=403,
+            detail="Costume changes are only allowed during the setup phase",
         )
 
     if file.content_type not in ALLOWED_CONTENT_TYPES:
@@ -50,13 +59,14 @@ async def upload_costume(
     img.save(filepath, "JPEG", quality=85)
 
     old = conn.execute(
-        "SELECT photo_filename FROM costumes WHERE user_id = ?", (user["user_id"],)
+        "SELECT id, photo_filename FROM costumes WHERE user_id = ?", (user["user_id"],)
     ).fetchone()
     if old:
         old_path = COSTUMES_DIR / old["photo_filename"]
+        conn.execute("DELETE FROM votes WHERE costume_id = ?", (old["id"],))
+        conn.execute("DELETE FROM costumes WHERE user_id = ?", (user["user_id"],))
         if old_path.exists():
             old_path.unlink()
-        conn.execute("DELETE FROM costumes WHERE user_id = ?", (user["user_id"],))
 
     cursor = conn.execute(
         "INSERT INTO costumes (user_id, photo_filename) VALUES (?, ?)",
@@ -66,29 +76,6 @@ async def upload_costume(
     costume_id = cursor.lastrowid
 
     return {"costume_id": costume_id, "filename": filename}
-
-
-@router.delete("/costume")
-def delete_costume(
-    user: CurrentUser = Depends(get_current_user),
-    conn: sqlite3.Connection = Depends(get_db),
-):
-    row = conn.execute(
-        "SELECT id, photo_filename FROM costumes WHERE user_id = ?", (user["user_id"],)
-    ).fetchone()
-
-    if not row:
-        raise HTTPException(status_code=404, detail="No costume found")
-
-    conn.execute("DELETE FROM votes WHERE costume_id = ?", (row["id"],))
-    conn.execute("DELETE FROM costumes WHERE id = ?", (row["id"],))
-    conn.commit()
-
-    filepath = COSTUMES_DIR / row["photo_filename"]
-    if filepath.exists():
-        filepath.unlink()
-
-    return {"success": True}
 
 
 @router.get("/costumes")
