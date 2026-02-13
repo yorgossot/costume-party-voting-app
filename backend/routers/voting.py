@@ -15,43 +15,98 @@ class VoteRequest(BaseModel):
 @router.post("/vote")
 def vote(body: VoteRequest, user: CurrentUser = Depends(get_current_user)):
     conn = get_db()
+    conn.execute("BEGIN IMMEDIATE")
 
-    costume = conn.execute(
-        "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
-    ).fetchone()
-    if not costume:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Costume not found")
-    if costume["user_id"] == user["user_id"]:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Cannot vote for your own costume")
+    try:
+        setting = conn.execute(
+            "SELECT value FROM settings WHERE key = 'voting_closed'"
+        ).fetchone()
+        if setting and setting["value"] == "true":
+            raise HTTPException(status_code=403, detail="Voting is closed")
 
-    existing = conn.execute(
-        "SELECT id FROM votes WHERE voter_id = ? AND costume_id = ?",
-        (user["user_id"], body.costume_id),
-    ).fetchone()
-    if existing:
-        conn.close()
-        raise HTTPException(status_code=400, detail="Already voted for this costume")
+        costume = conn.execute(
+            "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
+        ).fetchone()
+        if not costume:
+            raise HTTPException(status_code=404, detail="Costume not found")
+        if costume["user_id"] == user["user_id"]:
+            raise HTTPException(
+                status_code=400, detail="Cannot vote for your own costume"
+            )
 
-    count = conn.execute(
-        "SELECT COUNT(*) as cnt FROM votes WHERE voter_id = ?", (user["user_id"],)
-    ).fetchone()["cnt"]
-    if count >= MAX_VOTES_PER_USER:
-        conn.close()
-        raise HTTPException(
-            status_code=400,
-            detail=f"Maximum of {MAX_VOTES_PER_USER} votes reached",
+        existing = conn.execute(
+            "SELECT id FROM votes WHERE voter_id = ? AND costume_id = ?",
+            (user["user_id"], body.costume_id),
+        ).fetchone()
+        if existing:
+            raise HTTPException(
+                status_code=400, detail="Already voted for this costume"
+            )
+
+        count = conn.execute(
+            "SELECT COUNT(*) as cnt FROM votes WHERE voter_id = ?", (user["user_id"],)
+        ).fetchone()["cnt"]
+        if count >= MAX_VOTES_PER_USER:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Maximum of {MAX_VOTES_PER_USER} votes reached",
+            )
+
+        conn.execute(
+            "INSERT INTO votes (voter_id, costume_id) VALUES (?, ?)",
+            (user["user_id"], body.costume_id),
         )
-
-    conn.execute(
-        "INSERT INTO votes (voter_id, costume_id) VALUES (?, ?)",
-        (user["user_id"], body.costume_id),
-    )
-    conn.commit()
-    conn.close()
+        conn.commit()
+    except HTTPException:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
     return {"success": True, "votes_remaining": MAX_VOTES_PER_USER - count - 1}
+
+
+@router.post("/unvote")
+def unvote(body: VoteRequest, user: CurrentUser = Depends(get_current_user)):
+    conn = get_db()
+
+    try:
+        setting = conn.execute(
+            "SELECT value FROM settings WHERE key = 'voting_closed'"
+        ).fetchone()
+        if setting and setting["value"] == "true":
+            raise HTTPException(status_code=403, detail="Voting is closed")
+
+        costume = conn.execute(
+            "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
+        ).fetchone()
+        if not costume:
+            raise HTTPException(status_code=404, detail="Costume not found")
+
+        existing = conn.execute(
+            "SELECT id FROM votes WHERE voter_id = ? AND costume_id = ?",
+            (user["user_id"], body.costume_id),
+        ).fetchone()
+        if not existing:
+            raise HTTPException(
+                status_code=404,
+                detail="Cannot remove vote from costume that was not voted.",
+            )
+
+        conn.execute(
+            "DELETE FROM votes WHERE voter_id = ? AND costume_id = ?",
+            (user["user_id"], body.costume_id),
+        )
+
+        count = conn.execute(
+            "SELECT COUNT(*) as cnt FROM votes WHERE voter_id = ?", (user["user_id"],)
+        ).fetchone()["cnt"]
+
+        conn.commit()
+    finally:
+        conn.close()
+
+    return {"success": True, "votes_remaining": MAX_VOTES_PER_USER - count}
 
 
 @router.get("/results")

@@ -59,6 +59,8 @@ def select_dressed_up_as(
 
 # Helper functions to get user info in other routers without repeating code
 def _get_user_field(field: str, user: CurrentUser) -> str | None:
+    if field not in USER_FIELDS:
+        raise ValueError(f"Unknown field: {field}")
     conn = get_db()
     row = conn.execute(
         f"SELECT {field} FROM users WHERE id = ?", (user["user_id"],)
