@@ -30,22 +30,32 @@ var Setup = {
     });
 
     // Step 3: Photo upload
-    var uploadArea = $('#upload-area');
-    var photoInput = $('#photo-input');
+    var cameraInput = $('#photo-input-camera');
+    var galleryInput = $('#photo-input-gallery');
     var uploadBtn = $('#btn-upload');
 
-    uploadArea.addEventListener('click', function() { photoInput.click(); });
-
-    photoInput.addEventListener('change', function() {
-      if (photoInput.files && photoInput.files[0]) {
-        self.selectedFile = photoInput.files[0];
+    function handleFileSelected(input) {
+      if (input.files && input.files[0]) {
+        self.selectedFile = input.files[0];
         var preview = $('#photo-preview');
         preview.src = URL.createObjectURL(self.selectedFile);
         preview.classList.remove('hidden');
         $('#upload-placeholder').classList.add('hidden');
         uploadBtn.disabled = false;
       }
+    }
+
+    $('#btn-take-photo').addEventListener('click', function(e) {
+      e.stopPropagation();
+      cameraInput.click();
     });
+    $('#btn-pick-gallery').addEventListener('click', function(e) {
+      e.stopPropagation();
+      galleryInput.click();
+    });
+
+    cameraInput.addEventListener('change', function() { handleFileSelected(cameraInput); });
+    galleryInput.addEventListener('change', function() { handleFileSelected(galleryInput); });
 
     uploadBtn.addEventListener('click', function() { self.submitPhoto(); });
   },

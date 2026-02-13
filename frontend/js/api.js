@@ -11,7 +11,7 @@ var API = {
 
     var self = this;
     return fetch('/api' + path, opts).then(function(res) {
-      if (res.status === 401) {
+      if (res.status === 401 && path !== '/login') {
         self.logout();
         return Promise.reject({ status: 401, detail: 'Session expired' });
       }

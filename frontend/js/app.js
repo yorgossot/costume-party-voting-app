@@ -146,17 +146,18 @@ var Home = {
           '<div class="home-stats">' +
             '<span>Votes used: ' + u.votes_used + '/5</span>' +
           '</div>' +
-          (isSetup ? '<div class="home-actions"><button class="btn btn-outline" id="btn-reupload">Change Photo</button></div>' : '') +
+          (isSetup ? '<div class="home-actions"><button class="btn btn-outline" id="btn-reupload-camera">Take New Photo</button> <button class="btn btn-outline" id="btn-reupload-gallery">Choose from Gallery</button></div>' : '') +
         '</div>' +
       '</div>';
 
     if (!isSetup) return;
 
     var self = this;
-    $('#btn-reupload').addEventListener('click', function() {
+    function reuploadWithInput(useCapture) {
       var input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
+      if (useCapture) input.setAttribute('capture', 'environment');
       input.addEventListener('change', function() {
         if (input.files && input.files[0]) {
           showLoading();
@@ -174,7 +175,9 @@ var Home = {
         }
       });
       input.click();
-    });
+    }
+    $('#btn-reupload-camera').addEventListener('click', function() { reuploadWithInput(true); });
+    $('#btn-reupload-gallery').addEventListener('click', function() { reuploadWithInput(false); });
 
     container.querySelectorAll('.btn-edit').forEach(function(btn) {
       btn.addEventListener('click', function() {

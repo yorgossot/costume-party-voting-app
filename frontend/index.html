@@ -118,14 +118,27 @@
       <div class="setup-step hidden" data-step="2">
         <h2>Show off your costume!</h2>
         <p class="subtitle">Take a photo or choose from gallery</p>
+        <input type="file" id="photo-input-camera" accept="image/*" capture="environment" hidden>
+        <input type="file" id="photo-input-gallery" accept="image/*" hidden>
         <div class="upload-area" id="upload-area">
-          <input type="file" id="photo-input" accept="image/*" hidden>
           <div id="upload-placeholder">
-            <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-              <circle cx="12" cy="13" r="4"/>
-            </svg>
-            <span>Tap to take a photo</span>
+            <div class="upload-buttons">
+              <button type="button" class="btn btn-outline" id="btn-take-photo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20" style="vertical-align:middle;margin-right:6px">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
+                Take Photo
+              </button>
+              <button type="button" class="btn btn-outline" id="btn-pick-gallery">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20" style="vertical-align:middle;margin-right:6px">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+                Choose from Gallery
+              </button>
+            </div>
           </div>
           <img id="photo-preview" class="hidden" alt="Preview">
         </div>
