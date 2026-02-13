@@ -59,6 +59,10 @@ html, body {
   top: 0;
   background: var(--bg);
   padding: 8px 0;
+  margin-left: -16px;
+  margin-right: -16px;
+  padding-left: 16px;
+  padding-right: 16px;
   z-index: 10;
 }
 
@@ -672,17 +676,18 @@ input:focus { border-color: var(--primary); }
 
 .home-inline-edit {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   width: 100%;
 }
 
 .inline-edit-input {
-  flex: 1;
+  width: 100%;
   padding: 6px 10px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg);
+  border: 1.5px solid var(--text-secondary);
+  background: var(--surface-light);
   color: var(--text);
   font-size: 14px;
 }
