@@ -157,7 +157,6 @@ var Home = {
       var input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
-      input.capture = 'environment';
       input.addEventListener('change', function() {
         if (input.files && input.files[0]) {
           showLoading();
