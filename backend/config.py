@@ -23,7 +23,7 @@ JWT_EXPIRY_HOURS = 24
 # Fail if JWT_SECRET is not set in production environments, but allow a default for
 # local development
 if not JWT_SECRET:
-    if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("RENDER"):
+    if os.getenv("RAILWAY_ENVIRONMENT_NAME") or os.getenv("RENDER"):
         raise RuntimeError("JWT_SECRET environment variable must be set in production")
     JWT_SECRET = "dev-secret-change-in-production"
 
