@@ -1,3 +1,4 @@
+import sqlite3
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
@@ -13,8 +14,12 @@ class VoteRequest(BaseModel):
 
 
 @router.post("/vote")
-def vote(body: VoteRequest, user: CurrentUser = Depends(get_current_user)):
-    conn = get_db()
+def vote(
+    body: VoteRequest,
+    user: CurrentUser = Depends(get_current_user),
+    conn: sqlite3.Connection = Depends(get_db),
+):
+
     conn.execute("BEGIN IMMEDIATE")
 
     try:
@@ -60,64 +65,59 @@ def vote(body: VoteRequest, user: CurrentUser = Depends(get_current_user)):
     except HTTPException:
         conn.rollback()
         raise
-    finally:
-        conn.close()
 
     return {"success": True, "votes_remaining": MAX_VOTES_PER_USER - count - 1}
 
 
 @router.post("/unvote")
-def unvote(body: VoteRequest, user: CurrentUser = Depends(get_current_user)):
-    conn = get_db()
+def unvote(
+    body: VoteRequest,
+    user: CurrentUser = Depends(get_current_user),
+    conn: sqlite3.Connection = Depends(get_db),
+):
 
-    try:
-        setting = conn.execute(
-            "SELECT value FROM settings WHERE key = 'voting_closed'"
-        ).fetchone()
-        if setting and setting["value"] == "true":
-            raise HTTPException(status_code=403, detail="Voting is closed")
+    setting = conn.execute(
+        "SELECT value FROM settings WHERE key = 'voting_closed'"
+    ).fetchone()
+    if setting and setting["value"] == "true":
+        raise HTTPException(status_code=403, detail="Voting is closed")
 
-        costume = conn.execute(
-            "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
-        ).fetchone()
-        if not costume:
-            raise HTTPException(status_code=404, detail="Costume not found")
+    costume = conn.execute(
+        "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
+    ).fetchone()
+    if not costume:
+        raise HTTPException(status_code=404, detail="Costume not found")
 
-        existing = conn.execute(
-            "SELECT id FROM votes WHERE voter_id = ? AND costume_id = ?",
-            (user["user_id"], body.costume_id),
-        ).fetchone()
-        if not existing:
-            raise HTTPException(
-                status_code=404,
-                detail="Cannot remove vote from costume that was not voted.",
-            )
-
-        conn.execute(
-            "DELETE FROM votes WHERE voter_id = ? AND costume_id = ?",
-            (user["user_id"], body.costume_id),
+    existing = conn.execute(
+        "SELECT id FROM votes WHERE voter_id = ? AND costume_id = ?",
+        (user["user_id"], body.costume_id),
+    ).fetchone()
+    if not existing:
+        raise HTTPException(
+            status_code=404,
+            detail="Cannot remove vote from costume that was not voted.",
         )
 
-        count = conn.execute(
-            "SELECT COUNT(*) as cnt FROM votes WHERE voter_id = ?", (user["user_id"],)
-        ).fetchone()["cnt"]
+    conn.execute(
+        "DELETE FROM votes WHERE voter_id = ? AND costume_id = ?",
+        (user["user_id"], body.costume_id),
+    )
 
-        conn.commit()
-    finally:
-        conn.close()
+    count = conn.execute(
+        "SELECT COUNT(*) as cnt FROM votes WHERE voter_id = ?", (user["user_id"],)
+    ).fetchone()["cnt"]
+
+    conn.commit()
 
     return {"success": True, "votes_remaining": MAX_VOTES_PER_USER - count}
 
 
 @router.get("/results")
-def results():
-    conn = get_db()
-
+def results(conn: sqlite3.Connection = Depends(get_db)):
     setting = conn.execute(
         "SELECT value FROM settings WHERE key = 'voting_closed'"
     ).fetchone()
     if not setting or setting["value"] != "true":
-        conn.close()
         raise HTTPException(status_code=403, detail="Results are not available yet")
 
     rows = conn.execute(
@@ -131,7 +131,6 @@ def results():
         ORDER BY vote_count DESC
     """
     ).fetchall()
-    conn.close()
 
     return [
         {

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import TypedDict
 
+import sqlite3
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
@@ -49,12 +50,10 @@ def get_current_user(
 
 
 @router.post("/login")
-def login(body: LoginRequest):
-    conn = get_db()
+def login(body: LoginRequest, conn: sqlite3.Connection = Depends(get_db)):
     row = conn.execute(
         "SELECT id, is_admin FROM users WHERE access_code = ?", (body.access_code,)
     ).fetchone()
-    conn.close()
 
     if not row:
         raise HTTPException(status_code=401, detail="Invalid access_code")

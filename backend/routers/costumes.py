@@ -1,8 +1,9 @@
+import sqlite3
 import time
 from io import BytesIO
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
-from PIL import Image
+from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 
 register_heif_opener()
@@ -19,8 +20,9 @@ router = APIRouter(prefix="/api")
 async def upload_costume(
     file: UploadFile = File(...),
     user: CurrentUser = Depends(get_current_user),
+    conn: sqlite3.Connection = Depends(get_db),
 ):
-    if not get_display_name(user) or not get_dressed_up_as(user):
+    if not get_display_name(user, conn) or not get_dressed_up_as(user, conn):
         raise HTTPException(
             status_code=400,
             detail="Must set display name and dressed up as before uploading costume",
@@ -40,13 +42,12 @@ async def upload_costume(
     filepath = COSTUMES_DIR / filename
 
     img = Image.open(BytesIO(data))
+    img = ImageOps.exif_transpose(img)
     if img.width > MAX_PHOTO_WIDTH:
         ratio = MAX_PHOTO_WIDTH / img.width
         img = img.resize((MAX_PHOTO_WIDTH, int(img.height * ratio)), Image.LANCZOS)
     img = img.convert("RGB")
     img.save(filepath, "JPEG", quality=85)
-
-    conn = get_db()
 
     old = conn.execute(
         "SELECT photo_filename FROM costumes WHERE user_id = ?", (user["user_id"],)
@@ -63,26 +64,25 @@ async def upload_costume(
     )
     conn.commit()
     costume_id = cursor.lastrowid
-    conn.close()
 
     return {"costume_id": costume_id, "filename": filename}
 
 
 @router.delete("/costume")
-def delete_costume(user: CurrentUser = Depends(get_current_user)):
-    conn = get_db()
+def delete_costume(
+    user: CurrentUser = Depends(get_current_user),
+    conn: sqlite3.Connection = Depends(get_db),
+):
     row = conn.execute(
         "SELECT id, photo_filename FROM costumes WHERE user_id = ?", (user["user_id"],)
     ).fetchone()
 
     if not row:
-        conn.close()
         raise HTTPException(status_code=404, detail="No costume found")
 
     conn.execute("DELETE FROM votes WHERE costume_id = ?", (row["id"],))
     conn.execute("DELETE FROM costumes WHERE id = ?", (row["id"],))
     conn.commit()
-    conn.close()
 
     filepath = COSTUMES_DIR / row["photo_filename"]
     if filepath.exists():
@@ -92,8 +92,7 @@ def delete_costume(user: CurrentUser = Depends(get_current_user)):
 
 
 @router.get("/costumes")
-def list_costumes():
-    conn = get_db()
+def list_costumes(conn: sqlite3.Connection = Depends(get_db)):
     rows = conn.execute(
         """
         SELECT c.id, c.user_id, u.access_code, c.photo_filename,
@@ -105,14 +104,13 @@ def list_costumes():
         ORDER BY c.upload_timestamp DESC
     """
     ).fetchall()
-    conn.close()
 
     return [
         {
             "id": r["id"],
             "user_id": r["user_id"],
             "photo_url": f"/static/costumes/{r['photo_filename']}",
-            "vote_count": r["vote_count"],
+            # "vote_count": r["vote_count"], # Uncomment to show vote counts on frontend
         }
         for r in rows
     ]

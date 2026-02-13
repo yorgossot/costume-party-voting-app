@@ -1,18 +1,32 @@
 import sqlite3
 import os
+from collections.abc import Generator
+
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "party.db")
 
 
-def get_db():
+def connect_to_db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
+def get_db() -> Generator[sqlite3.Connection]:
+    """
+    Provides a database connection for the duration of a request.
+    The connection is automatically closed after the request is processed.
+    """
+    conn = connect_to_db()
+    try:
+        yield conn
+    finally:
+        conn.close()
+
+
 def init_db():
-    conn = get_db()
+    conn = connect_to_db()  # Ensure the database file is created if it doesn't exist
     conn.executescript(
         """
         CREATE TABLE IF NOT EXISTS users (

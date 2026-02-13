@@ -8,14 +8,14 @@ The first access_code in the file is created as an admin.
 """
 
 from pathlib import Path
-from database import get_db, init_db
+from database import connect_to_db, init_db
 
 ACCESS_CODES_FILE = Path(__file__).parent / "access_codes.txt"
 
 
 def generate():
     init_db()
-    conn = get_db()
+    conn = connect_to_db()
 
     access_codes = [
         line.strip()
