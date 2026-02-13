@@ -154,9 +154,10 @@ Web app for party guests to upload costume photos, vote for best costume, and op
 ```bash
 cd backend
 source venv/bin/activate
-python generate_credentials.py 100   # first time only
 fastapi dev main.py
 ```
+
+Credentials are generated automatically on startup from `backend/access_codes.txt`.
 
 ## Development Workflow
 

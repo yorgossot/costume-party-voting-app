@@ -7,9 +7,10 @@ The frontend is served by the FastAPI backend. No build step needed.
 ```bash
 cd backend
 source venv/bin/activate
-python generate_credentials.py 20   # first time only
 fastapi dev main.py
 ```
+
+Credentials are generated automatically on startup from `backend/access_codes.txt`.
 
 Then open `http://localhost:8000` on your phone or browser.
 

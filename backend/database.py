@@ -3,7 +3,9 @@ import os
 from collections.abc import Generator
 
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "party.db")
+DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+DB_PATH = os.path.join(DATA_DIR, "party.db")
 
 
 def connect_to_db() -> sqlite3.Connection:
@@ -66,7 +68,6 @@ def init_db():
         );
 
         INSERT OR IGNORE INTO settings (key, value) VALUES ('competition_status', 'setup');
-        DELETE FROM settings WHERE key IN ('voting_closed', 'results_visible');
     """
     )
     conn.commit()

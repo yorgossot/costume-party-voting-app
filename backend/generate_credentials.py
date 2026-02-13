@@ -13,8 +13,7 @@ from database import connect_to_db, init_db
 ACCESS_CODES_FILE = Path(__file__).parent / "access_codes.txt"
 
 
-def generate():
-    init_db()
+def generate_users_from_access_codes():
     conn = connect_to_db()
 
     access_codes = [
@@ -45,7 +44,3 @@ def generate():
     for access_code in created:
         label = " (admin)" if access_code == admin_access_code else ""
         print(f"  {access_code}{label}")
-
-
-if __name__ == "__main__":
-    generate()

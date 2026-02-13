@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 
 from config import COSTUMES_DIR, FRONTEND_DIR
 from database import init_db
+from generate_credentials import generate_users_from_access_codes
 from auth import router as auth_router
 from routers.costumes import router as costumes_router
 from routers.voting import router as voting_router
@@ -11,6 +12,7 @@ from routers.admin import router as admin_router
 
 app = FastAPI(title="Party Costume Voting")
 init_db()
+generate_users_from_access_codes()
 
 app.mount("/static/costumes", StaticFiles(directory=str(COSTUMES_DIR)), name="costumes")
 

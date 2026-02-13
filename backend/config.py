@@ -29,7 +29,10 @@ if not JWT_SECRET:
 
 
 # --------- FILE STORAGE CONFIGURATION ---------
-COSTUMES_DIR = Path(__file__).parent / "costumes"
+DATA_DIR = Path(__file__).parent / "data"
+DATA_DIR.mkdir(exist_ok=True)
+
+COSTUMES_DIR = DATA_DIR / "costumes"
 COSTUMES_DIR.mkdir(exist_ok=True)
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"

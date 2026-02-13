@@ -6,12 +6,12 @@ venv/
 # Database
 *.db
 
-# Uploaded costumes
-backend/costumes/*
-!backend/costumes/.gitkeep
+# Uploaded costumes & data
+backend/data/*
+!backend/data/.gitkeep
 
-# Credentials (sensitive)
-backend/access_codes.txt
+# Credentials (sensitive - uncomment to hide from git)
+# backend/access_codes.txt
 
 # Environment
 .env
