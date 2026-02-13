@@ -59,6 +59,7 @@ def init_db():
         );
 
         INSERT OR IGNORE INTO settings (key, value) VALUES ('voting_closed', 'false');
+        INSERT OR IGNORE INTO settings (key, value) VALUES ('results_visible', 'false');
     """
     )
     conn.commit()
