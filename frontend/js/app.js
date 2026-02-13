@@ -180,46 +180,51 @@ var Home = {
     container.querySelectorAll('.btn-edit').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var field = btn.dataset.field;
-        var wrapper = btn.parentElement;
         var currentVal = field === 'display_name' ? u.display_name : u.dressed_up_as;
         var label = field === 'display_name' ? 'display name' : 'costume name';
+        var apiFn = field === 'display_name' ? API.setDisplayName : API.setDressedUpAs;
 
-        wrapper.innerHTML =
-          '<div class="home-inline-edit">' +
-            '<input type="text" class="inline-edit-input" value="' + self.escapeHtml(currentVal || '') + '" maxlength="30">' +
-            '<button class="btn btn-sm btn-primary inline-edit-save">Save</button>' +
-            '<button class="btn btn-sm btn-secondary inline-edit-cancel">Cancel</button>' +
-          '</div>';
-
-        var inp = wrapper.querySelector('.inline-edit-input');
+        var modal = $('#edit-modal');
+        var inp = $('#edit-modal-input');
+        $('#edit-modal-label').textContent = 'Enter your ' + label;
+        inp.value = currentVal || '';
+        modal.classList.remove('hidden');
         inp.focus();
         inp.select();
 
-        var apiFn = field === 'display_name' ? API.setDisplayName : API.setDressedUpAs;
-        var userKey = field;
+        function close() {
+          modal.classList.add('hidden');
+          $('#edit-modal-save').removeEventListener('click', save);
+          $('#edit-modal-cancel').removeEventListener('click', close);
+          $('#edit-modal .modal-backdrop').removeEventListener('click', close);
+          inp.removeEventListener('keydown', onKey);
+        }
 
         function save() {
           var val = inp.value.trim();
-          if (!val || val === currentVal) { self.render(); return; }
+          if (!val || val === currentVal) { close(); return; }
+          close();
           showLoading();
           apiFn.call(API, val).then(function(data) {
-            App.user[userKey] = data[userKey];
+            App.user[field] = data[field];
             showToast('Updated!', 'success');
             self.render();
           }).catch(function(err) {
             showToast(err.detail, 'error');
-            self.render();
           }).finally(function() {
             hideLoading();
           });
         }
 
-        wrapper.querySelector('.inline-edit-save').addEventListener('click', save);
-        wrapper.querySelector('.inline-edit-cancel').addEventListener('click', function() { self.render(); });
-        inp.addEventListener('keydown', function(e) {
+        function onKey(e) {
           if (e.key === 'Enter') save();
-          if (e.key === 'Escape') self.render();
-        });
+          if (e.key === 'Escape') close();
+        }
+
+        $('#edit-modal-save').addEventListener('click', save);
+        $('#edit-modal-cancel').addEventListener('click', close);
+        $('#edit-modal .modal-backdrop').addEventListener('click', close);
+        inp.addEventListener('keydown', onKey);
       });
     });
   },
