@@ -95,8 +95,8 @@ def delete_costume(
 def list_costumes(conn: sqlite3.Connection = Depends(get_db)):
     rows = conn.execute(
         """
-        SELECT c.id, c.user_id, u.access_code, c.photo_filename,
-               COUNT(v.id) as vote_count
+        SELECT c.id, c.user_id, u.access_code, u.display_name, u.dressed_up_as,
+               c.photo_filename, COUNT(v.id) as vote_count
         FROM costumes c
         JOIN users u ON c.user_id = u.id
         LEFT JOIN votes v ON v.costume_id = c.id
@@ -109,6 +109,8 @@ def list_costumes(conn: sqlite3.Connection = Depends(get_db)):
         {
             "id": r["id"],
             "user_id": r["user_id"],
+            "display_name": r["display_name"],
+            "dressed_up_as": r["dressed_up_as"],
             "photo_url": f"/static/costumes/{r['photo_filename']}",
             # "vote_count": r["vote_count"], # Uncomment to show vote counts on frontend
         }
