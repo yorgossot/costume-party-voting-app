@@ -28,7 +28,6 @@ explosive-seahorse
 sarcastic-koala
 legendary-axolotl
 turbocharged-snail
-majestic-opossum
 diabolical-quokka
 outrageous-lobster
 psychedelic-mole
@@ -66,9 +65,7 @@ forbidden-llama
 spontaneous-catfish
 berserk-peacock
 legendary-tadpole
-hypnotic-raccoon
 volatile-stork
-dazzling-skunk
 preposterous-crane
 relentless-panda
 ludicrous-jellyfish
@@ -99,3 +96,7 @@ catastrophic-eel
 outrageous-ibis
 bamboozled-tapir
 unhinged-sparrow
+mischievous-rat
+majestic-opossum
+hypnotic-raccoon
+dazzling-skunk
