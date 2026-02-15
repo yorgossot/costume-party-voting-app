@@ -1,10 +1,15 @@
 import sqlite3
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from auth import get_current_user, CurrentUser
-from config import COMPETITION_STATES
+from config import COMPETITION_STATES, COSTUMES_DIR
 from database import get_db, get_competition_status
+
+ATHENS_TZ = timezone(timedelta(hours=2))
+PARTY_START = datetime(2026, 2, 20, 18, 0, tzinfo=ATHENS_TZ)  # Friday 6pm Greek time
+PARTY_END = PARTY_START + timedelta(weeks=1)
 
 router = APIRouter(prefix="/api")
 
@@ -63,3 +68,57 @@ def set_status(
     )
     conn.commit()
     return {"status": body.status, "previous": current}
+
+
+@router.post("/admin/purge")
+def purge(
+    user: CurrentUser = Depends(get_current_user),
+    conn: sqlite3.Connection = Depends(get_db),
+):
+    """Reset the app to a clean state for testing. Deletes all votes, costumes
+    (including photo files), and resets user profiles and competition status.
+
+    Automatically disabled between PARTY_START and PARTY_END to prevent
+    accidental use during the party.
+    """
+    if not user["is_admin"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    if PARTY_START <= datetime.now(ATHENS_TZ) < PARTY_END:
+        raise HTTPException(
+            status_code=403,
+            detail="Purge is disabled during the party (Friday 6pm to next Friday 6pm Greek time)",
+        )
+
+    # Delete all votes
+    vote_count = conn.execute("SELECT COUNT(*) FROM votes").fetchone()[0]
+    conn.execute("DELETE FROM votes")
+
+    # Delete all costumes and their photo files
+    costume_rows = conn.execute("SELECT photo_filename FROM costumes").fetchall()
+    conn.execute("DELETE FROM costumes")
+
+    # Reset user profiles
+    conn.execute("UPDATE users SET display_name = NULL, dressed_up_as = NULL")
+
+    # Reset competition status
+    conn.execute(
+        "UPDATE settings SET value = 'setup' WHERE key = 'competition_status'"
+    )
+
+    conn.commit()
+
+    # Remove photo files from disk
+    deleted_files = 0
+    for row in costume_rows:
+        path = COSTUMES_DIR / row[0]
+        if path.exists():
+            path.unlink()
+            deleted_files += 1
+
+    return {
+        "purged": True,
+        "votes_deleted": vote_count,
+        "costumes_deleted": len(costume_rows),
+        "files_deleted": deleted_files,
+    }
