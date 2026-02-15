@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from auth import get_current_user, CurrentUser
 from config import MAX_VOTES_PER_USER, ALLOW_UNREGISTERED_VOTING
 from database import get_db, get_competition_status
-from users import has_completed_profile
+from .users import has_completed_profile
 
 router = APIRouter(prefix="/api")
 
