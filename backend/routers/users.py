@@ -127,3 +127,16 @@ def get_display_name(user: CurrentUser, conn: sqlite3.Connection) -> str | None:
 
 def get_dressed_up_as(user: CurrentUser, conn: sqlite3.Connection) -> str | None:
     return _get_user_field("dressed_up_as", user, conn)
+
+
+def has_completed_profile(user: CurrentUser, conn: sqlite3.Connection) -> bool:
+    row = conn.execute(
+        """
+        SELECT u.display_name, u.dressed_up_as, c.id as costume_id
+        FROM users u
+        LEFT JOIN costumes c ON c.user_id = u.id
+        WHERE u.id = ?
+        """,
+        (user["user_id"],),
+    ).fetchone()
+    return bool(row and row["display_name"] and row["dressed_up_as"] and row["costume_id"])

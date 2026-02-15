@@ -26,23 +26,55 @@ from locust import HttpUser, task, between
 
 # Access codes from access_codes.txt (excluding admin)
 ACCESS_CODES = [
-    "turbulent-platypus", "melodramatic-shrimp", "suspicious-flamingo",
-    "bewildered-walrus", "flamboyant-iguana", "hysterical-pelican",
-    "paranoid-chinchilla", "volcanic-hamster", "existential-penguin",
-    "ludicrous-moose", "radioactive-sloth", "pretentious-wombat",
-    "chaotic-narwhal", "philosophical-crab", "unhinged-alpaca",
-    "flirtatious-hippo", "caffeinated-gecko", "delusional-otter",
-    "spectacular-ferret", "neurotic-toucan", "magnificent-squid",
-    "dramatic-capybara", "reckless-puffin", "mystical-badger",
-    "ridiculous-yak", "explosive-seahorse", "sarcastic-koala",
-    "legendary-axolotl", "turbocharged-snail",
-    "diabolical-quokka", "outrageous-lobster", "psychedelic-mole",
-    "overthinking-swan", "glamorous-warthog", "thunderous-lemur",
-    "eccentric-mantis", "furious-duckling", "hallucinating-seal",
-    "intergalactic-newt", "bonkers-pangolin", "flammable-parrot",
-    "colossal-chipmunk", "melodious-scorpion", "irrational-ostrich",
-    "fabulous-armadillo", "supersonic-tortoise", "haunted-macaw",
-    "ominous-bunny", "rebellious-starfish",
+    "turbulent-platypus",
+    "melodramatic-shrimp",
+    "suspicious-flamingo",
+    "bewildered-walrus",
+    "flamboyant-iguana",
+    "hysterical-pelican",
+    "paranoid-chinchilla",
+    "volcanic-hamster",
+    "existential-penguin",
+    "ludicrous-moose",
+    "radioactive-sloth",
+    "pretentious-wombat",
+    "chaotic-narwhal",
+    "philosophical-crab",
+    "unhinged-alpaca",
+    "flirtatious-hippo",
+    "caffeinated-gecko",
+    "delusional-otter",
+    "spectacular-ferret",
+    "neurotic-toucan",
+    "magnificent-squid",
+    "dramatic-capybara",
+    "reckless-puffin",
+    "mystical-badger",
+    "ridiculous-yak",
+    "explosive-seahorse",
+    "sarcastic-koala",
+    "legendary-axolotl",
+    "turbocharged-snail",
+    "diabolical-quokka",
+    "outrageous-lobster",
+    "psychedelic-mole",
+    "overthinking-swan",
+    "glamorous-warthog",
+    "thunderous-lemur",
+    "eccentric-mantis",
+    "furious-duckling",
+    "hallucinating-seal",
+    "intergalactic-newt",
+    "bonkers-pangolin",
+    "flammable-parrot",
+    "colossal-chipmunk",
+    "melodious-scorpion",
+    "irrational-ostrich",
+    "fabulous-armadillo",
+    "supersonic-tortoise",
+    "haunted-macaw",
+    "ominous-bunny",
+    "rebellious-starfish",
 ]
 
 
@@ -77,9 +109,12 @@ class PartyGuest(HttpUser):
         self.my_costume_id = None
 
         # Login
-        resp = self.client.post("/api/login", json={
-            "access_code": self.access_code,
-        })
+        resp = self.client.post(
+            "/api/login",
+            json={
+                "access_code": self.access_code,
+            },
+        )
         if resp.status_code != 200:
             return
         data = resp.json()
@@ -95,8 +130,18 @@ class PartyGuest(HttpUser):
         )
 
         # Set costume description
-        costumes = ["Vampire", "Ghost", "Pirate", "Witch", "Zombie",
-                     "Robot", "Alien", "Ninja", "Dragon", "Wizard"]
+        costumes = [
+            "Vampire",
+            "Ghost",
+            "Pirate",
+            "Witch",
+            "Zombie",
+            "Robot",
+            "Alien",
+            "Ninja",
+            "Dragon",
+            "Wizard",
+        ]
         self.client.post(
             "/api/select-dressed-up-as",
             json={"value": random.choice(costumes)},

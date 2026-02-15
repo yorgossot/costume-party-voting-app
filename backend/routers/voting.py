@@ -3,8 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from auth import get_current_user, CurrentUser
-from config import MAX_VOTES_PER_USER
+from config import MAX_VOTES_PER_USER, ALLOW_UNREGISTERED_VOTING
 from database import get_db, get_competition_status
+from users import has_completed_profile
 
 router = APIRouter(prefix="/api")
 
@@ -20,22 +21,32 @@ def vote(
     conn: sqlite3.Connection = Depends(get_db),
 ):
 
+    # Check if voting is open
+    if get_competition_status(conn) != "voting":
+        raise HTTPException(status_code=403, detail="Voting is not open")
+   
+    # Check if user has completed profile if unregistered voting is not allowed
+    if not ALLOW_UNREGISTERED_VOTING and not has_completed_profile(user, conn):
+        raise HTTPException(
+            status_code=403,
+            detail="Complete your profile and upload a costume to vote",
+        )
+
+    # Verify costume exists and is not the user's own
+    costume = conn.execute(
+        "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
+    ).fetchone()
+    if not costume:
+        raise HTTPException(status_code=404, detail="Costume not found")
+    if costume["user_id"] == user["user_id"]:
+        raise HTTPException(
+            status_code=400, detail="Cannot vote for your own costume"
+        )
+
+    # Use a transaction to ensure vote count integrity
     conn.execute("BEGIN IMMEDIATE")
-
     try:
-        if get_competition_status(conn) != "voting":
-            raise HTTPException(status_code=403, detail="Voting is not open")
-
-        costume = conn.execute(
-            "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
-        ).fetchone()
-        if not costume:
-            raise HTTPException(status_code=404, detail="Costume not found")
-        if costume["user_id"] == user["user_id"]:
-            raise HTTPException(
-                status_code=400, detail="Cannot vote for your own costume"
-            )
-
+        # Check if user has already voted for this costume
         existing = conn.execute(
             "SELECT id FROM votes WHERE voter_id = ? AND costume_id = ?",
             (user["user_id"], body.costume_id),
@@ -44,7 +55,7 @@ def vote(
             raise HTTPException(
                 status_code=400, detail="Already voted for this costume"
             )
-
+        # Check if user has remaining votes
         count = conn.execute(
             "SELECT COUNT(*) as cnt FROM votes WHERE voter_id = ?", (user["user_id"],)
         ).fetchone()["cnt"]
@@ -53,13 +64,14 @@ def vote(
                 status_code=400,
                 detail=f"Maximum of {MAX_VOTES_PER_USER} votes reached",
             )
-
+        # Insert the vote
         conn.execute(
             "INSERT INTO votes (voter_id, costume_id) VALUES (?, ?)",
             (user["user_id"], body.costume_id),
         )
         conn.commit()
     except HTTPException:
+        # Rollback on any HTTPException to avoid partial updates
         conn.rollback()
         raise
 

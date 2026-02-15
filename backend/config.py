@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
 
+# --------- GAME CONFIGURATION ---------
+ALLOW_UNREGISTERED_VOTING = False
+
+
 # --------- GENERAL CONFIGURATION ---------
 MAX_VOTES_PER_USER = 5
 COMPETITION_STATES = ["setup", "voting", "counting", "reveal"]
