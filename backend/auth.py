@@ -49,6 +49,12 @@ def get_current_user(
     return {"user_id": user_id, "access_code": access_code, "is_admin": is_admin}
 
 
+def require_admin(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    if not user["is_admin"]:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
 @router.post("/login")
 def login(body: LoginRequest, conn: sqlite3.Connection = Depends(get_db)):
     row = conn.execute(

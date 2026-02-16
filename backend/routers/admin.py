@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from auth import get_current_user, CurrentUser
+from auth import require_admin
 from config import COMPETITION_STATES, COSTUMES_DIR
 from database import get_db, get_competition_status
 
@@ -23,14 +23,8 @@ def competition_status(conn: sqlite3.Connection = Depends(get_db)):
     return {"status": get_competition_status(conn)}
 
 
-@router.post("/admin/advance-status")
-def advance_status(
-    user: CurrentUser = Depends(get_current_user),
-    conn: sqlite3.Connection = Depends(get_db),
-):
-    if not user["is_admin"]:
-        raise HTTPException(status_code=403, detail="Admin access required")
-
+@router.post("/admin/advance-status", dependencies=[Depends(require_admin)])
+def advance_status(conn: sqlite3.Connection = Depends(get_db)):
     current = get_competition_status(conn)
     idx = COMPETITION_STATES.index(current)
 
@@ -46,15 +40,11 @@ def advance_status(
     return {"status": new_status, "previous": current}
 
 
-@router.post("/admin/set-status")
+@router.post("/admin/set-status", dependencies=[Depends(require_admin)])
 def set_status(
     body: SetStatusRequest,
-    user: CurrentUser = Depends(get_current_user),
     conn: sqlite3.Connection = Depends(get_db),
 ):
-    if not user["is_admin"]:
-        raise HTTPException(status_code=403, detail="Admin access required")
-
     if body.status not in COMPETITION_STATES:
         raise HTTPException(
             status_code=400,
@@ -70,20 +60,14 @@ def set_status(
     return {"status": body.status, "previous": current}
 
 
-@router.post("/admin/purge")
-def purge(
-    user: CurrentUser = Depends(get_current_user),
-    conn: sqlite3.Connection = Depends(get_db),
-):
+@router.post("/admin/purge", dependencies=[Depends(require_admin)])
+def purge(conn: sqlite3.Connection = Depends(get_db)):
     """Reset the app to a clean state for testing. Deletes all votes, costumes
     (including photo files), and resets user profiles and competition status.
 
     Automatically disabled between PARTY_START and PARTY_END to prevent
     accidental use during the party.
     """
-    if not user["is_admin"]:
-        raise HTTPException(status_code=403, detail="Admin access required")
-
     if PARTY_START <= datetime.now(ATHENS_TZ) < PARTY_END:
         raise HTTPException(
             status_code=403,
@@ -102,9 +86,7 @@ def purge(
     conn.execute("UPDATE users SET display_name = NULL, dressed_up_as = NULL")
 
     # Reset competition status
-    conn.execute(
-        "UPDATE settings SET value = 'setup' WHERE key = 'competition_status'"
-    )
+    conn.execute("UPDATE settings SET value = 'setup' WHERE key = 'competition_status'")
 
     conn.commit()
 

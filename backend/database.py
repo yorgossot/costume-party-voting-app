@@ -2,7 +2,6 @@ import sqlite3
 import os
 from collections.abc import Generator
 
-
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 DB_PATH = os.path.join(DATA_DIR, "party.db")
@@ -36,8 +35,7 @@ def get_competition_status(conn: sqlite3.Connection) -> str:
 
 def init_db():
     conn = connect_to_db()  # Ensure the database file is created if it doesn't exist
-    conn.executescript(
-        """
+    conn.executescript("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             access_code TEXT UNIQUE NOT NULL,
@@ -68,7 +66,6 @@ def init_db():
         );
 
         INSERT OR IGNORE INTO settings (key, value) VALUES ('competition_status', 'setup');
-    """
-    )
+    """)
     conn.commit()
     conn.close()

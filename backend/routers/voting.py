@@ -24,7 +24,7 @@ def vote(
     # Check if voting is open
     if get_competition_status(conn) != "voting":
         raise HTTPException(status_code=403, detail="Voting is not open")
-   
+
     # Check if user has completed profile if unregistered voting is not allowed
     if not ALLOW_UNREGISTERED_VOTING and not has_completed_profile(user, conn):
         raise HTTPException(
@@ -39,9 +39,7 @@ def vote(
     if not costume:
         raise HTTPException(status_code=404, detail="Costume not found")
     if costume["user_id"] == user["user_id"]:
-        raise HTTPException(
-            status_code=400, detail="Cannot vote for your own costume"
-        )
+        raise HTTPException(status_code=400, detail="Cannot vote for your own costume")
 
     # Use a transaction to ensure vote count integrity
     conn.execute("BEGIN IMMEDIATE")
@@ -123,8 +121,7 @@ def results(conn: sqlite3.Connection = Depends(get_db)):
     if get_competition_status(conn) != "reveal":
         raise HTTPException(status_code=403, detail="Results are not available yet")
 
-    rows = conn.execute(
-        """
+    rows = conn.execute("""
         SELECT c.id as costume_id, u.access_code, u.display_name, u.dressed_up_as,
                c.photo_filename, COUNT(v.id) as vote_count
         FROM costumes c
@@ -132,8 +129,7 @@ def results(conn: sqlite3.Connection = Depends(get_db)):
         LEFT JOIN votes v ON v.costume_id = c.id
         GROUP BY c.id
         ORDER BY vote_count DESC
-    """
-    ).fetchall()
+    """).fetchall()
 
     return [
         {

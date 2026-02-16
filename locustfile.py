@@ -21,8 +21,9 @@ Usage:
 import random
 import string
 import io
-from locust import HttpUser, task, between
 
+
+from locust import HttpUser, task, between
 
 # Access codes from access_codes.txt (excluding admin)
 ACCESS_CODES = [

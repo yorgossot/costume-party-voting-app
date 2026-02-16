@@ -139,4 +139,6 @@ def has_completed_profile(user: CurrentUser, conn: sqlite3.Connection) -> bool:
         """,
         (user["user_id"],),
     ).fetchone()
-    return bool(row and row["display_name"] and row["dressed_up_as"] and row["costume_id"])
+    return bool(
+        row and row["display_name"] and row["dressed_up_as"] and row["costume_id"]
+    )

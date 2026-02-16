@@ -1,0 +1,14 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 26.1.0
+    hooks:
+      - id: black
+        args: [--check]
+  - repo: local
+    hooks:
+      - id: app-import-check
+        name: Check app imports
+        entry: bash -c 'cd backend && source venv/bin/activate && python -c "from main import app"'
+        language: system
+        pass_filenames: false
+        always_run: true

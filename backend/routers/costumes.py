@@ -80,8 +80,7 @@ async def upload_costume(
 
 @router.get("/costumes")
 def list_costumes(conn: sqlite3.Connection = Depends(get_db)):
-    rows = conn.execute(
-        """
+    rows = conn.execute("""
         SELECT c.id, c.user_id, u.access_code, u.display_name, u.dressed_up_as,
                c.photo_filename, COUNT(v.id) as vote_count
         FROM costumes c
@@ -89,8 +88,7 @@ def list_costumes(conn: sqlite3.Connection = Depends(get_db)):
         LEFT JOIN votes v ON v.costume_id = c.id
         GROUP BY c.id
         ORDER BY c.upload_timestamp DESC
-    """
-    ).fetchall()
+    """).fetchall()
 
     return [
         {
