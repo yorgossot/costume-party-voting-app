@@ -30,13 +30,16 @@ var API = {
   // Auth
   login: function(code) { return this.post('/login', { access_code: code }); },
 
-  // Load a script dynamically, returns a Promise
+  // Load a protected script dynamically (fetched with auth, then executed)
   loadScript: function(src) {
-    return new Promise(function(resolve, reject) {
+    var headers = {};
+    if (this.token) headers['Authorization'] = 'Bearer ' + this.token;
+    return fetch(src, { headers: headers }).then(function(res) {
+      if (!res.ok) return Promise.reject(new Error('Failed to load ' + src));
+      return res.text();
+    }).then(function(code) {
       var s = document.createElement('script');
-      s.src = src;
-      s.onload = resolve;
-      s.onerror = function() { reject(new Error('Failed to load ' + src)); };
+      s.textContent = code;
       document.head.appendChild(s);
     });
   },
