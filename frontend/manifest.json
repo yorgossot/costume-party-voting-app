@@ -1,10 +1,17 @@
 {
-  "name": "Costume Party",
-  "short_name": "Party",
+  "name": "SkpdParto",
+  "short_name": "SkpdParto",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1a2e",
   "theme_color": "#1a1a2e",
   "orientation": "portrait",
-  "icons": []
+  "icons": [
+    {
+      "src": "/skpdaprto.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
 }

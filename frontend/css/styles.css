@@ -235,9 +235,10 @@ input:focus { border-color: var(--primary); }
 }
 
 .logo-icon {
-  font-size: 72px;
+  width: 100px;
+  height: auto;
   display: block;
-  margin-bottom: 12px;
+  margin: 0 auto 12px;
 }
 
 .login-hero h1 {
