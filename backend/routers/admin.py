@@ -60,6 +60,12 @@ def set_status(
     return {"status": body.status, "previous": current}
 
 
+@router.get("/admin/purge-available", dependencies=[Depends(require_admin)])
+def purge_available():
+    now = datetime.now(ATHENS_TZ)
+    return {"available": not (PARTY_START <= now < PARTY_END)}
+
+
 @router.post("/admin/purge", dependencies=[Depends(require_admin)])
 def purge(conn: sqlite3.Connection = Depends(get_db)):
     """Reset the app to a clean state for testing. Deletes all votes, costumes

@@ -1,6 +1,8 @@
 // Admin API methods — loaded dynamically for admins only
 API.advanceStatus = function() { return this.post('/admin/advance-status'); };
 API.setStatus = function(status) { return this.post('/admin/set-status', { status: status }); };
+API.purge = function() { return this.post('/admin/purge'); };
+API.purgeAvailable = function() { return this.get('/admin/purge-available'); };
 
 var Admin = {
   STATES: ['setup', 'voting', 'counting', 'reveal'],
@@ -21,12 +23,15 @@ var Admin = {
 
   load: function() {
     var self = this;
-    API.getCompetitionStatus().then(function(data) {
-      self.render(data.status);
+    Promise.all([
+      API.getCompetitionStatus(),
+      API.purgeAvailable()
+    ]).then(function(results) {
+      self.render(results[0].status, results[1].available);
     });
   },
 
-  render: function(currentStatus) {
+  render: function(currentStatus, purgeAvailable) {
     var container = $('#admin-content');
     var idx = this.STATES.indexOf(currentStatus);
     var info = this.STATE_INFO[currentStatus];
@@ -69,6 +74,10 @@ var Admin = {
       html += '<button class="btn btn-outline" id="btn-go-back" style="margin-top:8px;">' +
         'Go back to ' + prevInfo.label + '</button>';
     }
+    if (purgeAvailable) {
+      html += '<button class="btn btn-danger" id="btn-purge" style="margin-top:8px;">' +
+        'Purge All Data</button>';
+    }
     html += '</div>';
 
     container.innerHTML = html;
@@ -85,6 +94,10 @@ var Admin = {
         self.setStatus(prevStatus);
       });
     }
+    var purgeBtn = document.getElementById('btn-purge');
+    if (purgeBtn) {
+      purgeBtn.addEventListener('click', function() { self.purge(); });
+    }
   },
 
   advance: function() {
@@ -95,6 +108,19 @@ var Admin = {
     }).catch(function(err) {
       showToast(err.detail, 'error');
       self.load();
+    });
+  },
+
+  purge: function() {
+    var self = this;
+    confirmAction('Purge ALL data? This deletes all votes, costumes, and resets the competition. This cannot be undone.').then(function(ok) {
+      if (!ok) return;
+      API.purge().then(function(data) {
+        showToast('Purged: ' + data.votes_deleted + ' votes, ' + data.costumes_deleted + ' costumes', 'success');
+        self.load();
+      }).catch(function(err) {
+        showToast(err.detail, 'error');
+      });
     });
   },
 
