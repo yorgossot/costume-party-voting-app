@@ -41,9 +41,19 @@ var Vote = {
       API.me(),
       API.getCompetitionStatus()
     ]).then(function(results) {
-      self.costumes = results[0];
+      var allCostumes = results[0];
       var me = results[1];
       self.myUserId = me.user_id;
+
+      // Separate own costume, shuffle the rest with a per-user seed
+      var own = null;
+      var others = [];
+      for (var i = 0; i < allCostumes.length; i++) {
+        if (allCostumes[i].user_id === me.user_id) own = allCostumes[i];
+        else others.push(allCostumes[i]);
+      }
+      self.costumes = self.seededShuffle(others, me.user_id);
+      if (own) self.costumes.unshift(own);
       self.votesUsed = me.votes_used;
       self.votedIds = {};
       me.voted_costume_ids.forEach(function(id) { self.votedIds[id] = true; });
@@ -201,6 +211,24 @@ var Vote = {
 
   closeModal: function() {
     $('#photo-modal').classList.add('hidden');
+  },
+
+  seededShuffle: function(arr, seed) {
+    // Mulberry32 PRNG
+    var t = seed | 0;
+    function rand() {
+      t = (t + 0x6D2B79F5) | 0;
+      var x = Math.imul(t ^ (t >>> 15), 1 | t);
+      x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+      return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    }
+    // Fisher-Yates shuffle
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(rand() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
   },
 
   escapeHtml: function(str) {

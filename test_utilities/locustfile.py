@@ -11,10 +11,10 @@ Usage:
     pip install locust Pillow
 
     # With UI (open http://localhost:8089):
-    locust -f locustfile.py --host https://YOUR-APP.up.railway.app
+    locust -f test_utilities/locustfile.py --host https://YOUR-APP.up.railway.app
 
     # Headless:
-    locust -f locustfile.py --host https://YOUR-APP.up.railway.app \
+    locust -f test_utilities/locustfile.py --host https://YOUR-APP.up.railway.app \
         --headless -u 50 -r 5 --run-time 2m
 """
 
@@ -30,7 +30,7 @@ from locust import HttpUser, task, between
 # ---------------------------------------------------------------------------
 # Access codes — loaded from access_codes.txt, skip first line (admin)
 # ---------------------------------------------------------------------------
-_ACCESS_CODES_FILE = Path(__file__).parent / "backend" / "access_codes.txt"
+_ACCESS_CODES_FILE = Path(__file__).parent.parent / "backend" / "access_codes.txt"
 ACCESS_CODES = [
     line.strip() for line in _ACCESS_CODES_FILE.read_text().splitlines() if line.strip()
 ]
