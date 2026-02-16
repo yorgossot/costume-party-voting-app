@@ -112,7 +112,7 @@ var Vote = {
 
     var html = '<div class="costume-card" data-costume-id="' + costume.id + '">';
     html += '<div class="costume-photo-wrap">';
-    html += '<img src="' + costume.photo_url + '" loading="lazy" alt="Costume">';
+    html += '<img src="' + costume.thumb_url + '" loading="lazy" alt="Costume">';
 
     // Label at bottom
     var label = costume.dressed_up_as || costume.display_name || '';

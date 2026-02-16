@@ -90,13 +90,16 @@ def purge(conn: sqlite3.Connection = Depends(get_db)):
 
     conn.commit()
 
-    # Remove photo files from disk
+    # Remove photo files and thumbnails from disk
     deleted_files = 0
     for row in costume_rows:
         path = COSTUMES_DIR / row[0]
+        thumb = COSTUMES_DIR / f"thumb_{row[0]}"
         if path.exists():
             path.unlink()
             deleted_files += 1
+        if thumb.exists():
+            thumb.unlink()
 
     return {
         "purged": True,

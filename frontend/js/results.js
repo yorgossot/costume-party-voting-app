@@ -59,7 +59,7 @@ var Results = {
       html += '</div>';
 
       // Photo
-      html += '<img src="' + r.photo_url + '" class="result-thumb" alt="Costume" loading="lazy">';
+      html += '<img src="' + r.thumb_url + '" class="result-thumb" alt="Costume" loading="lazy">';
 
       // Info
       html += '<div class="result-info">';

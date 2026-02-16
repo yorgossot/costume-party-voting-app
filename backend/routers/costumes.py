@@ -8,12 +8,32 @@ from pillow_heif import register_heif_opener
 
 register_heif_opener()
 
+from pathlib import Path
+
 from auth import get_current_user, CurrentUser
-from config import COSTUMES_DIR, ALLOWED_CONTENT_TYPES, MAX_PHOTO_SIZE, MAX_PHOTO_WIDTH
+from config import (
+    COSTUMES_DIR,
+    ALLOWED_CONTENT_TYPES,
+    MAX_PHOTO_SIZE,
+    MAX_PHOTO_WIDTH,
+    THUMB_WIDTH,
+    THUMB_QUALITY,
+)
 from database import get_db, get_competition_status
 from routers.users import get_display_name, get_dressed_up_as
 
 router = APIRouter(prefix="/api")
+
+
+def generate_thumbnail(source_path: Path):
+    img = Image.open(source_path)
+    img = ImageOps.exif_transpose(img)
+    if img.width > THUMB_WIDTH:
+        ratio = THUMB_WIDTH / img.width
+        img = img.resize((THUMB_WIDTH, int(img.height * ratio)), Image.LANCZOS)
+    img = img.convert("RGB")
+    thumb_path = source_path.parent / f"thumb_{source_path.name}"
+    img.save(thumb_path, "JPEG", quality=THUMB_QUALITY)
 
 
 @router.post("/upload-costume")
@@ -57,16 +77,20 @@ async def upload_costume(
         img = img.resize((MAX_PHOTO_WIDTH, int(img.height * ratio)), Image.LANCZOS)
     img = img.convert("RGB")
     img.save(filepath, "JPEG", quality=85)
+    generate_thumbnail(filepath)
 
     old = conn.execute(
         "SELECT id, photo_filename FROM costumes WHERE user_id = ?", (user["user_id"],)
     ).fetchone()
     if old:
         old_path = COSTUMES_DIR / old["photo_filename"]
+        old_thumb = COSTUMES_DIR / f"thumb_{old['photo_filename']}"
         conn.execute("DELETE FROM votes WHERE costume_id = ?", (old["id"],))
         conn.execute("DELETE FROM costumes WHERE user_id = ?", (user["user_id"],))
         if old_path.exists():
             old_path.unlink()
+        if old_thumb.exists():
+            old_thumb.unlink()
 
     cursor = conn.execute(
         "INSERT INTO costumes (user_id, photo_filename) VALUES (?, ?)",
@@ -97,6 +121,7 @@ def list_costumes(conn: sqlite3.Connection = Depends(get_db)):
             "display_name": r["display_name"],
             "dressed_up_as": r["dressed_up_as"],
             "photo_url": f"/static/costumes/{r['photo_filename']}",
+            "thumb_url": f"/static/costumes/thumb_{r['photo_filename']}",
             # "vote_count": r["vote_count"], # Uncomment to show vote counts on frontend
         }
         for r in rows

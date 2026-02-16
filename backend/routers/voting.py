@@ -138,6 +138,7 @@ def results(conn: sqlite3.Connection = Depends(get_db)):
             "display_name": r["display_name"],
             "dressed_up_as": r["dressed_up_as"],
             "photo_url": f"/static/costumes/{r['photo_filename']}",
+            "thumb_url": f"/static/costumes/thumb_{r['photo_filename']}",
             "vote_count": r["vote_count"],
         }
         for r in rows
