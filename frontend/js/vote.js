@@ -44,19 +44,24 @@ var Vote = {
       var allCostumes = results[0];
       var me = results[1];
       self.myUserId = me.user_id;
-
-      // Separate own costume, shuffle the rest with a per-user seed
-      var own = null;
-      var others = [];
-      for (var i = 0; i < allCostumes.length; i++) {
-        if (allCostumes[i].user_id === me.user_id) own = allCostumes[i];
-        else others.push(allCostumes[i]);
-      }
-      self.costumes = self.seededShuffle(others, me.user_id);
-      if (own) self.costumes.unshift(own);
       self.votesUsed = me.votes_used;
       self.votedIds = {};
       me.voted_costume_ids.forEach(function(id) { self.votedIds[id] = true; });
+
+      // Separate into own / voted / rest, shuffle each group with per-user seed
+      var own = null;
+      var voted = [];
+      var others = [];
+      for (var i = 0; i < allCostumes.length; i++) {
+        if (allCostumes[i].user_id === me.user_id) own = allCostumes[i];
+        else if (self.votedIds[allCostumes[i].id]) voted.push(allCostumes[i]);
+        else others.push(allCostumes[i]);
+      }
+      self.costumes = [].concat(
+        own ? [own] : [],
+        self.seededShuffle(voted, me.user_id),
+        self.seededShuffle(others, me.user_id)
+      );
       self.competitionStatus = results[2].status;
       App.user = me;
       self.render();
