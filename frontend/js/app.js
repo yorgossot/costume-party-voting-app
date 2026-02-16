@@ -19,6 +19,17 @@ var App = {
     if (typeof Vote  !== 'undefined' && Vote.init)  Vote.init();
     if (typeof Home  !== 'undefined' && Home.init)  Home.init();
 
+    // Inject header logos
+    if (PARTY_CONFIG.showHeaderLogo) {
+      $$('.view-header h1').forEach(function(h1) {
+        var img = document.createElement('img');
+        img.src = PARTY_CONFIG.logoSrc;
+        img.alt = '';
+        img.className = 'header-logo';
+        h1.prepend(img);
+      });
+    }
+
     // Tab bar clicks
     $$('.tab-item').forEach(function(tab) {
       tab.addEventListener('click', function() {

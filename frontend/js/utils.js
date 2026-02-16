@@ -1,3 +1,9 @@
+/* ===== Global Config ===== */
+var PARTY_CONFIG = {
+  showHeaderLogo: true,
+  logoSrc: '/skpdaprto.png'
+};
+
 /* ===== DOM Helpers ===== */
 function $(sel) { return document.querySelector(sel); }
 function $$(sel) { return document.querySelectorAll(sel); }
