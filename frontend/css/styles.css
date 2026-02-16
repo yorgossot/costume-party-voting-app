@@ -239,6 +239,7 @@ input:focus { border-color: var(--primary); }
   height: auto;
   display: block;
   margin: 0 auto 12px;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.7));
 }
 
 .login-hero h1 {
