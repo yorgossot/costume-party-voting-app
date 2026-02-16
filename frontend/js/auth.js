@@ -12,6 +12,8 @@ var Auth = {
 
       API.login(code).then(function(data) {
         API.setToken(data.token);
+        return App.loadProtectedScripts(data.is_admin);
+      }).then(function() {
         return API.me();
       }).then(function(user) {
         App.user = user;

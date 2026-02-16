@@ -1,3 +1,7 @@
+// Admin API methods — loaded dynamically for admins only
+API.advanceStatus = function() { return this.post('/admin/advance-status'); };
+API.setStatus = function(status) { return this.post('/admin/set-status', { status: status }); };
+
 var Admin = {
   STATES: ['setup', 'voting', 'counting', 'reveal'],
   STATE_INFO: {

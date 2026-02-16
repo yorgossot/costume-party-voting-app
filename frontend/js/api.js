@@ -29,29 +29,17 @@ var API = {
 
   // Auth
   login: function(code) { return this.post('/login', { access_code: code }); },
-  me: function() { return this.get('/me'); },
 
-  // Setup
-  setDisplayName: function(v) { return this.post('/select-display-name', { value: v }); },
-  setDressedUpAs: function(v) { return this.post('/select-dressed-up-as', { value: v }); },
-
-  // Costumes
-  uploadCostume: function(file) {
-    var fd = new FormData();
-    fd.append('file', file);
-    return this.upload('/upload-costume', fd);
+  // Load a script dynamically, returns a Promise
+  loadScript: function(src) {
+    return new Promise(function(resolve, reject) {
+      var s = document.createElement('script');
+      s.src = src;
+      s.onload = resolve;
+      s.onerror = function() { reject(new Error('Failed to load ' + src)); };
+      document.head.appendChild(s);
+    });
   },
-  getCostumes: function() { return this.get('/costumes'); },
-
-  // Voting
-  vote: function(id) { return this.post('/vote', { costume_id: id }); },
-  unvote: function(id) { return this.post('/unvote', { costume_id: id }); },
-  getCompetitionStatus: function() { return this.get('/competition-status'); },
-  getResults: function() { return this.get('/results'); },
-
-  // Admin
-  advanceStatus: function() { return this.post('/admin/advance-status'); },
-  setStatus: function(status) { return this.post('/admin/set-status', { status: status }); },
 
   // Token management
   setToken: function(token) {

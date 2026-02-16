@@ -38,8 +38,12 @@ var App = {
     // Check existing session
     if (API.token) {
       showLoading();
-      API.me().then(function(user) {
+      API.loadScript('/js/api-auth.js').then(function() {
+        return API.me();
+      }).then(function(user) {
         self.user = user;
+        if (user.is_admin) return API.loadScript('/js/admin.js');
+      }).then(function() {
         self.routeAfterAuth();
       }).catch(function() {
         API.logout();
@@ -49,6 +53,12 @@ var App = {
     } else {
       this.navigate('login');
     }
+  },
+
+  loadProtectedScripts: function(isAdmin) {
+    var p = API.loadScript('/js/api-auth.js');
+    if (isAdmin) p = p.then(function() { return API.loadScript('/js/admin.js'); });
+    return p;
   },
 
   routeAfterAuth: function() {

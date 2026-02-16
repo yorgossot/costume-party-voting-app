@@ -12,3 +12,8 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: js-syntax-check
+        name: Check JS syntax
+        entry: node --check
+        language: system
+        files: \.js$
