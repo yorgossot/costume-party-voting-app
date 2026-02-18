@@ -51,7 +51,7 @@ The app has 4 distinct states managed by admins:
 - Max 5 votes per user (`MAX_VOTES_PER_USER`)
 - Cannot vote for own costume
 - Can un-vote to reclaim votes
-- Votes stored with unique constraint: one vote per user per costume
+- Votes stored with unique constraint: one vote per user per person (votes reference `voted_user_id`, not `costume_id`)
 - Optional config: `ALLOW_UNREGISTERED_VOTING` (currently `false`, requires complete profile)
 
 ### Admin Features
@@ -60,6 +60,7 @@ The app has 4 distinct states managed by admins:
 - Manually set status to any phase
 - **Purge button**: Reset entire app (votes, costumes, profiles) for testing
   - Automatically disabled during party week (Feb 20-27, 2026)
+- **User management**: Look up users by access code, reset individual fields (display_name, dressed_up_as, photo), or purge a specific user's data
 
 ## Data Models
 
@@ -90,9 +91,9 @@ CREATE TABLE costumes (
 CREATE TABLE votes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     voter_id INTEGER NOT NULL REFERENCES users(id),
-    costume_id INTEGER NOT NULL REFERENCES costumes(id),
+    voted_user_id INTEGER NOT NULL REFERENCES users(id),
     timestamp TEXT DEFAULT (datetime('now')),
-    UNIQUE(voter_id, costume_id)  -- Prevents duplicate votes
+    UNIQUE(voter_id, voted_user_id)  -- Prevents duplicate votes
 );
 ```
 
@@ -142,6 +143,7 @@ CREATE TABLE settings (
   - Returns: `{success: true, votes_remaining: int}`
 - `GET /results` - Get vote counts and leaderboard
   - Only available when competition_status is 'reveal'
+  - Returns top 3 costumes only (LIMIT 3)
   - Returns: `[{costume_id, access_code, display_name, dressed_up_as, photo_url, thumb_url, vote_count}]` (sorted by votes DESC)
 
 ### Admin (`/api`)
@@ -158,10 +160,17 @@ CREATE TABLE settings (
 - `POST /admin/purge` - Reset app to clean state (admin only)
   - Deletes all votes, costumes, photo files, resets profiles and status
   - Returns: `{purged: true, votes_deleted: int, costumes_deleted: int, files_deleted: int}`
+- `GET /admin/user-lookup` - Look up a user by access code (admin only)
+  - Query param: `access_code=string`
+  - Returns: `{user_id, display_name, dressed_up_as, has_costume}`
+- `POST /admin/reset-user-field` - Reset a specific field for a user (admin only)
+  - Body: `{user_id: int, field: 'display_name' | 'dressed_up_as' | 'photo'}`
+- `POST /admin/purge-user` - Purge a specific user's data (admin only)
+  - Body: `{user_id: int}`
 
-### Protected JavaScript (`/protected-js`)
-- `GET /protected-js/admin.js` - Admin panel JavaScript (admin auth required)
-- `GET /protected-js/api-auth.js` - API client with auth (requires valid JWT)
+### Protected JavaScript (`/js`)
+- `GET /js/admin.js` - Admin panel JavaScript (admin auth required)
+- `GET /js/api-auth.js` - API client with auth (requires valid JWT)
 
 ## Frontend Architecture
 
