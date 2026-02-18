@@ -3,6 +3,9 @@ API.advanceStatus = function() { return this.post('/admin/advance-status'); };
 API.setStatus = function(status) { return this.post('/admin/set-status', { status: status }); };
 API.purge = function() { return this.post('/admin/purge'); };
 API.purgeAvailable = function() { return this.get('/admin/purge-available'); };
+API.userLookup = function(code) { return this.get('/admin/user-lookup?access_code=' + encodeURIComponent(code)); };
+API.resetUserField = function(code, field) { return this.post('/admin/reset-user-field', { access_code: code, field: field }); };
+API.purgeUser = function(code) { return this.post('/admin/purge-user', { access_code: code }); };
 
 var Admin = {
   STATES: ['setup', 'voting', 'counting', 'reveal'],
@@ -81,6 +84,7 @@ var Admin = {
     html += '</div>';
 
     container.innerHTML = html;
+    UserMgmt.render();
 
     // Attach listeners
     var advanceBtn = document.getElementById('btn-advance');
@@ -134,6 +138,92 @@ var Admin = {
       }).catch(function(err) {
         showToast(err.detail, 'error');
         self.load();
+      });
+    });
+  }
+};
+
+var UserMgmt = {
+  render: function() {
+    var container = $('#admin-content');
+    var section = document.createElement('div');
+    section.className = 'admin-card';
+    section.style.marginTop = '16px';
+    section.innerHTML =
+      '<h3 style="margin:0 0 12px;">User Management</h3>' +
+      '<div style="display:flex;gap:8px;align-items:center;">' +
+        '<input id="um-code" type="text" placeholder="Access code" ' +
+          'style="flex:1;padding:10px;border-radius:8px;border:1px solid #444;background:#1a1a2e;color:#fff;font-size:14px;">' +
+        '<button class="btn btn-outline" id="um-lookup" style="white-space:nowrap;">Look Up</button>' +
+      '</div>' +
+      '<div id="um-result" style="margin-top:12px;"></div>';
+    container.appendChild(section);
+
+    document.getElementById('um-lookup').addEventListener('click', function() {
+      var code = document.getElementById('um-code').value.trim();
+      if (code) UserMgmt.lookup(code);
+    });
+    document.getElementById('um-code').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        var code = this.value.trim();
+        if (code) UserMgmt.lookup(code);
+      }
+    });
+  },
+
+  lookup: function(code) {
+    var resultDiv = document.getElementById('um-result');
+    resultDiv.innerHTML = '<p class="subtitle">Looking up…</p>';
+    API.userLookup(code).then(function(data) {
+      UserMgmt.renderResult(code, data);
+    }).catch(function(err) {
+      resultDiv.innerHTML = '<p class="subtitle" style="color:#ff6b6b;">' +
+        (err.detail || 'User not found') + '</p>';
+    });
+  },
+
+  renderResult: function(code, data) {
+    var resultDiv = document.getElementById('um-result');
+    resultDiv.innerHTML =
+      '<div style="background:#0d0d1a;border-radius:8px;padding:12px;border:1px solid #333;">' +
+        '<p style="margin:0 0 4px;"><strong>' + (data.display_name || '<em>no name</em>') + '</strong>' +
+          (data.dressed_up_as ? ' &mdash; ' + data.dressed_up_as : '') + '</p>' +
+        '<p class="subtitle" style="margin:0 0 8px;">Photo: ' + (data.has_photo ? 'yes' : 'none') +
+          ' &nbsp;|&nbsp; Votes cast: ' + data.votes_cast +
+          ' &nbsp;|&nbsp; Votes received: ' + data.votes_received + '</p>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;">' +
+          '<button class="btn btn-outline um-action" data-field="display_name" style="font-size:13px;padding:6px 10px;">Reset Name</button>' +
+          '<button class="btn btn-outline um-action" data-field="dressed_up_as" style="font-size:13px;padding:6px 10px;">Reset Costume Desc</button>' +
+          (data.has_photo ? '<button class="btn btn-outline um-action" data-field="photo" style="font-size:13px;padding:6px 10px;">Reset Photo</button>' : '') +
+          '<button class="btn btn-danger" id="um-purge-user" style="font-size:13px;padding:6px 10px;">Purge Account</button>' +
+        '</div>' +
+      '</div>';
+
+    resultDiv.querySelectorAll('.um-action').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var field = this.getAttribute('data-field');
+        var label = { display_name: 'name', dressed_up_as: 'costume description', photo: 'photo' }[field];
+        confirmAction('Reset ' + label + ' for ' + (data.display_name || code) + '?').then(function(ok) {
+          if (!ok) return;
+          API.resetUserField(code, field).then(function() {
+            showToast('Reset ' + label, 'success');
+            UserMgmt.lookup(code);
+          }).catch(function(err) {
+            showToast(err.detail || 'Error', 'error');
+          });
+        });
+      });
+    });
+
+    document.getElementById('um-purge-user').addEventListener('click', function() {
+      confirmAction('Purge entire account for ' + (data.display_name || code) + '? This removes their costume and all votes.').then(function(ok) {
+        if (!ok) return;
+        API.purgeUser(code).then(function() {
+          showToast('Account purged', 'success');
+          UserMgmt.lookup(code);
+        }).catch(function(err) {
+          showToast(err.detail || 'Error', 'error');
+        });
       });
     });
   }

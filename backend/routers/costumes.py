@@ -85,7 +85,6 @@ async def upload_costume(
     if old:
         old_path = COSTUMES_DIR / old["photo_filename"]
         old_thumb = COSTUMES_DIR / f"thumb_{old['photo_filename']}"
-        conn.execute("DELETE FROM votes WHERE costume_id = ?", (old["id"],))
         conn.execute("DELETE FROM costumes WHERE user_id = ?", (user["user_id"],))
         if old_path.exists():
             old_path.unlink()
@@ -109,7 +108,7 @@ def list_costumes(conn: sqlite3.Connection = Depends(get_db)):
                c.photo_filename, COUNT(v.id) as vote_count
         FROM costumes c
         JOIN users u ON c.user_id = u.id
-        LEFT JOIN votes v ON v.costume_id = c.id
+        LEFT JOIN votes v ON v.voted_user_id = c.user_id
         GROUP BY c.id
         ORDER BY c.upload_timestamp DESC
     """).fetchall()

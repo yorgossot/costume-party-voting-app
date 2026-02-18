@@ -53,7 +53,12 @@ def me(
         (user["user_id"],),
     ).fetchone()
     votes = conn.execute(
-        "SELECT costume_id FROM votes WHERE voter_id = ?",
+        """
+        SELECT c.id as costume_id
+        FROM votes v
+        JOIN costumes c ON c.user_id = v.voted_user_id
+        WHERE v.voter_id = ?
+        """,
         (user["user_id"],),
     ).fetchall()
 

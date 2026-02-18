@@ -55,9 +55,9 @@ def init_db():
         CREATE TABLE IF NOT EXISTS votes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             voter_id INTEGER NOT NULL REFERENCES users(id),
-            costume_id INTEGER NOT NULL REFERENCES costumes(id),
+            voted_user_id INTEGER NOT NULL REFERENCES users(id),
             timestamp TEXT DEFAULT (datetime('now')),
-            UNIQUE(voter_id, costume_id)
+            UNIQUE(voter_id, voted_user_id)
         );
 
         CREATE TABLE IF NOT EXISTS settings (

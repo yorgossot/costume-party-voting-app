@@ -46,8 +46,8 @@ def vote(
     try:
         # Check if user has already voted for this costume
         existing = conn.execute(
-            "SELECT id FROM votes WHERE voter_id = ? AND costume_id = ?",
-            (user["user_id"], body.costume_id),
+            "SELECT id FROM votes WHERE voter_id = ? AND voted_user_id = ?",
+            (user["user_id"], costume["user_id"]),
         ).fetchone()
         if existing:
             raise HTTPException(
@@ -64,8 +64,8 @@ def vote(
             )
         # Insert the vote
         conn.execute(
-            "INSERT INTO votes (voter_id, costume_id) VALUES (?, ?)",
-            (user["user_id"], body.costume_id),
+            "INSERT INTO votes (voter_id, voted_user_id) VALUES (?, ?)",
+            (user["user_id"], costume["user_id"]),
         )
         conn.commit()
     except HTTPException:
@@ -93,8 +93,8 @@ def unvote(
         raise HTTPException(status_code=404, detail="Costume not found")
 
     existing = conn.execute(
-        "SELECT id FROM votes WHERE voter_id = ? AND costume_id = ?",
-        (user["user_id"], body.costume_id),
+        "SELECT id FROM votes WHERE voter_id = ? AND voted_user_id = ?",
+        (user["user_id"], costume["user_id"]),
     ).fetchone()
     if not existing:
         raise HTTPException(
@@ -103,8 +103,8 @@ def unvote(
         )
 
     conn.execute(
-        "DELETE FROM votes WHERE voter_id = ? AND costume_id = ?",
-        (user["user_id"], body.costume_id),
+        "DELETE FROM votes WHERE voter_id = ? AND voted_user_id = ?",
+        (user["user_id"], costume["user_id"]),
     )
 
     count = conn.execute(
@@ -126,7 +126,7 @@ def results(conn: sqlite3.Connection = Depends(get_db)):
                c.photo_filename, COUNT(v.id) as vote_count
         FROM costumes c
         JOIN users u ON c.user_id = u.id
-        LEFT JOIN votes v ON v.costume_id = c.id
+        LEFT JOIN votes v ON v.voted_user_id = c.user_id
         GROUP BY c.id
         ORDER BY vote_count DESC
         LIMIT 3
