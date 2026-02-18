@@ -1,5 +1,6 @@
 var Results = {
   refreshTimer: null,
+  results: [],
 
   onEnter: function() {
     var self = this;
@@ -28,6 +29,7 @@ var Results = {
   },
 
   renderResults: function(results) {
+    this.results = results;
     var container = $('#results-content');
     if (results.length === 0) {
       container.innerHTML = '<div class="empty-state"><span class="empty-icon">🏆</span>' +
@@ -37,7 +39,6 @@ var Results = {
 
     var maxVotes = results[0].vote_count || 1;
     var self = this;
-
     var rank = 0;
     var prevVotes = -1;
     container.innerHTML = results.map(function(r, i) {
@@ -59,7 +60,7 @@ var Results = {
       html += '</div>';
 
       // Photo
-      html += '<img src="' + r.thumb_url + '" class="result-thumb" alt="Costume" loading="lazy">';
+      html += '<img src="' + r.thumb_url + '" class="result-thumb" data-costume-id="' + r.costume_id + '" alt="Costume" loading="lazy">';
 
       // Info
       html += '<div class="result-info">';
@@ -76,17 +77,31 @@ var Results = {
       html += '</div>';
       return html;
     }).join('');
+
+    container.querySelectorAll('.result-thumb').forEach(function(img) {
+      img.style.cursor = 'pointer';
+      img.addEventListener('click', function() {
+        var id = parseInt(img.dataset.costumeId);
+        var r = self.results.find(function(x) { return x.costume_id === id; });
+        if (!r) return;
+        $('#modal-photo').src = r.photo_url;
+        $('#modal-name').textContent = r.display_name || r.access_code;
+        $('#modal-costume').textContent = r.dressed_up_as || '';
+        $('#modal-vote-btn').classList.add('hidden');
+        $('#photo-modal').classList.remove('hidden');
+      });
+    });
   },
 
   renderLocked: function(status) {
-    var msg = status === 'counting'
-      ? 'Results will be available soon!'
-      : 'Results are not available yet';
+    var heading = status === 'counting'
+      ? 'Counting votes...'
+      : 'Competition is still running';
     $('#results-content').innerHTML =
       '<div class="results-locked">' +
         '<span class="lock-icon">🏆</span>' +
-        '<h2>Results coming soon</h2>' +
-        '<p class="subtitle">' + msg + '</p>' +
+        '<h2>' + heading + '</h2>' +
+        '<p class="subtitle">Only the top 3 costumes will be revealed.</p>' +
       '</div>';
   },
 

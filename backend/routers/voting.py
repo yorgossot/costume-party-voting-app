@@ -129,6 +129,7 @@ def results(conn: sqlite3.Connection = Depends(get_db)):
         LEFT JOIN votes v ON v.costume_id = c.id
         GROUP BY c.id
         ORDER BY vote_count DESC
+        LIMIT 3
     """).fetchall()
 
     return [
