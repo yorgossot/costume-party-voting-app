@@ -51,20 +51,18 @@ var Admin = {
         '<div class="phase-dot-circle"></div>' +
         '<span class="phase-dot-label">' + self.STATE_INFO[s].label + '</span>' +
       '</div>';
-    }).join('<div class="phase-line' + '"></div>');
+    }).join('<div class="phase-line"></div>');
 
+    // Section 1: Competition Phase
     var html = '<div class="admin-card">' +
+      '<h3 class="admin-section-title">Competition Phase</h3>' +
       '<div class="phase-stepper">' + dots + '</div>' +
-    '</div>';
+      '<div class="phase-info-card">' +
+        '<p class="phase-current-label">' + info.label + '</p>' +
+        '<p class="subtitle">' + info.desc + '</p>' +
+      '</div>' +
+      '<div class="admin-actions">';
 
-    // Current phase info
-    html += '<div class="admin-card phase-info-card">' +
-      '<h3>' + info.label + '</h3>' +
-      '<p class="subtitle">' + info.desc + '</p>' +
-    '</div>';
-
-    // Actions
-    html += '<div class="admin-actions">';
     if (!isLast) {
       var nextInfo = this.STATE_INFO[this.STATES[idx + 1]];
       html += '<button class="btn btn-primary" id="btn-advance">' +
@@ -74,17 +72,23 @@ var Admin = {
     }
     if (!isFirst) {
       var prevInfo = this.STATE_INFO[this.STATES[idx - 1]];
-      html += '<button class="btn btn-outline" id="btn-go-back" style="margin-top:8px;">' +
+      html += '<button class="btn btn-outline" id="btn-go-back">' +
         'Go back to ' + prevInfo.label + '</button>';
     }
-    if (purgeAvailable) {
-      html += '<button class="btn btn-danger" id="btn-purge" style="margin-top:8px;">' +
-        'Purge All Data</button>';
-    }
-    html += '</div>';
+    html += '</div></div>';
 
     container.innerHTML = html;
     UserMgmt.render();
+
+    // Section 3: Danger Zone
+    if (purgeAvailable) {
+      var dangerCard = document.createElement('div');
+      dangerCard.className = 'admin-card admin-danger-zone';
+      dangerCard.innerHTML =
+        '<h3 class="admin-section-title">Danger Zone</h3>' +
+        '<button class="btn btn-danger" id="btn-purge" style="width:100%;">Purge All Data</button>';
+      container.appendChild(dangerCard);
+    }
 
     // Attach listeners
     var advanceBtn = document.getElementById('btn-advance');
@@ -108,7 +112,7 @@ var Admin = {
     var self = this;
     API.advanceStatus().then(function(data) {
       showToast('Advanced to ' + self.STATE_INFO[data.status].label, 'success');
-      self.render(data.status);
+      self.load();
     }).catch(function(err) {
       showToast(err.detail, 'error');
       self.load();
@@ -134,7 +138,7 @@ var Admin = {
       if (!ok) return;
       API.setStatus(targetStatus).then(function(data) {
         showToast('Moved to ' + self.STATE_INFO[data.status].label, 'success');
-        self.render(data.status);
+        self.load();
       }).catch(function(err) {
         showToast(err.detail, 'error');
         self.load();
@@ -148,14 +152,10 @@ var UserMgmt = {
     var container = $('#admin-content');
     var section = document.createElement('div');
     section.className = 'admin-card';
-    section.style.marginTop = '16px';
     section.innerHTML =
-      '<h3 style="margin:0 0 12px;">User Management</h3>' +
-      '<div style="display:flex;gap:8px;align-items:center;">' +
-        '<input id="um-code" type="text" placeholder="Access code" ' +
-          'style="flex:1;padding:10px;border-radius:8px;border:1px solid #444;background:#1a1a2e;color:#fff;font-size:14px;">' +
-        '<button class="btn btn-outline" id="um-lookup" style="white-space:nowrap;">Look Up</button>' +
-      '</div>' +
+      '<h3 class="admin-section-title">User Management</h3>' +
+      '<input id="um-code" type="text" placeholder="Access code" class="um-input">' +
+      '<button class="btn btn-outline" id="um-lookup" style="width:100%;margin-top:8px;">Look Up</button>' +
       '<div id="um-result" style="margin-top:12px;"></div>';
     container.appendChild(section);
 

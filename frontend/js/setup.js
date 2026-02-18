@@ -89,7 +89,14 @@ var Setup = {
   },
 
   advance: function() {
-    this.step++;
+    var next = this.step + 1;
+    while (next < 3) {
+      if (next === 0 && !App.user.display_name) break;
+      if (next === 1 && !App.user.dressed_up_as) break;
+      if (next === 2 && !App.user.costume) break;
+      next++;
+    }
+    this.step = next;
     if (this.step >= 3) {
       App.navigate('vote');
     } else {
