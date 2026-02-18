@@ -47,6 +47,7 @@ html, body {
 }
 
 .view.tab-view {
+  padding-top: 0;
   padding-bottom: calc(var(--tab-height) + var(--safe-bottom) + 16px);
 }
 
@@ -58,11 +59,10 @@ html, body {
   position: sticky;
   top: 0;
   background: var(--bg);
-  padding: 8px 0;
+  padding: 8px 16px;
+  padding-top: calc(var(--safe-top) + 8px);
   margin-left: -16px;
   margin-right: -16px;
-  padding-left: 16px;
-  padding-right: 16px;
   z-index: 10;
 }
 
