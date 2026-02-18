@@ -46,6 +46,17 @@ var App = {
       });
     }
 
+    // Info / Rules modal
+    var infoModal = $('#info-modal');
+    function openInfoModal() { infoModal.classList.remove('hidden'); }
+    function closeInfoModal() { infoModal.classList.add('hidden'); }
+    var infoBtn = $('#btn-info');
+    if (infoBtn) infoBtn.addEventListener('click', openInfoModal);
+    var infoClose = $('#info-modal-close');
+    if (infoClose) infoClose.addEventListener('click', closeInfoModal);
+    var infoBackdrop = $('#info-modal-backdrop');
+    if (infoBackdrop) infoBackdrop.addEventListener('click', closeInfoModal);
+
     // Check existing session
     if (API.token) {
       showLoading();

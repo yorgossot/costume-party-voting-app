@@ -51,6 +51,49 @@
     </div>
   </div>
 
+  <!-- Info / Rules modal -->
+  <div id="info-modal" class="modal hidden">
+    <div class="modal-backdrop" id="info-modal-backdrop"></div>
+    <div class="info-dialog">
+      <div class="info-dialog-header">
+        <h2>How it works</h2>
+        <button class="modal-close" id="info-modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div class="info-dialog-body">
+
+        <section class="info-section">
+          <h3>Competition phases</h3>
+          <ul>
+            <li><strong>Setup</strong> &mdash; Upload your costume photo, set your name and costume description. Changes can only be made during this phase &mdash; after it ends, you'll need to contact the organizers to update anything.</li>
+            <li><strong>Voting</strong> &mdash; Profiles and costumes are locked. Vote for up to 5 costumes you love (but not your own). You can take back a vote and give it to someone else.</li>
+            <li><strong>Counting</strong> &mdash; Voting is closed. Sit tight while the results are tallied.</li>
+            <li><strong>Reveal</strong> &mdash; The top 3 costumes are announced!</li>
+          </ul>
+        </section>
+
+        <section class="info-section">
+          <h3>Voting rules</h3>
+          <ul>
+            <li>You get <strong>5 votes</strong> total &mdash; spend them wisely.</li>
+            <li>You cannot vote for your own costume.</li>
+            <li>You can un-vote at any time during voting to reclaim a vote.</li>
+            <li>Only the <strong>top 3</strong> results are shown at the reveal.</li>
+          </ul>
+        </section>
+
+        <section class="info-section">
+          <h3>Your data</h3>
+          <ul>
+            <li>Your photo, name, and votes are stored only for this competition.</li>
+            <li>All data will be <strong>permanently deleted</strong> about a week after the party.</li>
+            <li>Want something changed or removed sooner? Just reach out to the organizers and they'll sort it out.</li>
+          </ul>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
   <!-- Edit field modal -->
   <div id="edit-modal" class="modal hidden">
     <div class="modal-backdrop"></div>
@@ -154,6 +197,14 @@
   <div id="view-home" class="view tab-view hidden">
     <div class="view-header">
       <h1>Your Costume</h1>
+      <div style="display:flex;align-items:center;gap:8px">
+      <button id="btn-info" class="btn-icon" aria-label="Info &amp; Rules">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="8" stroke-linecap="round" stroke-width="3"/>
+          <line x1="12" y1="12" x2="12" y2="16"/>
+        </svg>
+      </button>
       <button id="btn-logout" class="btn-icon" aria-label="Logout">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -161,6 +212,7 @@
           <line x1="21" y1="12" x2="9" y2="12"/>
         </svg>
       </button>
+      </div>
     </div>
     <div id="home-content"></div>
   </div>

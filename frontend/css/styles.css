@@ -1069,6 +1069,73 @@ input:focus { border-color: var(--primary); }
   to { opacity: 0; }
 }
 
+/* ===== Info / Rules Modal ===== */
+.info-dialog {
+  background: var(--surface);
+  border-radius: var(--radius);
+  width: calc(100% - 32px);
+  max-width: 480px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1001;
+  overflow: hidden;
+}
+
+.info-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 20px 0;
+  flex-shrink: 0;
+}
+
+.info-dialog-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.info-dialog-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.info-section h3 {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+.info-section ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.info-section ul li {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  padding-left: 14px;
+  position: relative;
+}
+
+.info-section ul li::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: var(--text-secondary);
+}
+
 /* ===== Tablet+ ===== */
 @media (min-width: 768px) {
   .costume-grid {
