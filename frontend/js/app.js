@@ -38,10 +38,16 @@ var App = {
       });
     });
 
-    // Logout button
+    // Logout buttons (home header + setup wizard)
     var logoutBtn = $('#btn-logout');
     if (logoutBtn) {
       logoutBtn.addEventListener('click', function() {
+        API.logout();
+      });
+    }
+    var setupLogoutBtn = $('#btn-setup-logout');
+    if (setupLogoutBtn) {
+      setupLogoutBtn.addEventListener('click', function() {
         API.logout();
       });
     }

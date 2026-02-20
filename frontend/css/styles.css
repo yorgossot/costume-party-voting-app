@@ -324,6 +324,13 @@ input:focus {
   background: var(--success);
 }
 
+.setup-logout {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
 .setup-step {
   text-align: center;
 }
