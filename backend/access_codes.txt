@@ -38,7 +38,6 @@ furious-duckling
 hallucinating-seal
 intergalactic-newt
 bonkers-pangolin
-flammable-parrot
 colossal-chipmunk
 melodious-scorpion
 irrational-ostrich
@@ -99,3 +98,5 @@ mischievous-rat
 majestic-opossum
 hypnotic-raccoon
 dazzling-skunk
+berserk-orangutan
+flammable-parrot

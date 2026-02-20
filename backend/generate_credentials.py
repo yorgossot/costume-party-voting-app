@@ -23,7 +23,7 @@ def _read_codes(path: Path) -> list[str]:
 def generate_users_from_access_codes():
     conn = connect_to_db()
 
-    admin_codes = set(_read_codes(ADMIN_CODES_FILE))
+    admin_codes = _read_codes(ADMIN_CODES_FILE)
     access_codes = _read_codes(ACCESS_CODES_FILE)
     all_codes = list(admin_codes) + access_codes
 
