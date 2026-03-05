@@ -2,7 +2,7 @@
 // Edit partyName here to change the app name everywhere.
 // Also update "name" and "short_name" in frontend/manifest.json to match.
 var PARTY_CONFIG = {
-  partyName: 'SkpdParto',
+  partyName: 'Neon Bday Party',
   showHeaderLogo: true,
   logoSrc: '/logo.png'
 };
