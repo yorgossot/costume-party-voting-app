@@ -1,7 +1,7 @@
 /* ===== Global Config ===== */
 var PARTY_CONFIG = {
   showHeaderLogo: true,
-  logoSrc: '/skpdaprto.png'
+  logoSrc: '/logo.png'
 };
 
 /* ===== DOM Helpers ===== */

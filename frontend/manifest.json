@@ -8,7 +8,7 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/skpdaprto.png",
+      "src": "/logo.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any"
