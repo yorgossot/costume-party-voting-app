@@ -1,6 +1,5 @@
 import sqlite3
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from auth import get_current_user, CurrentUser
 from config import MAX_VOTES_PER_USER, ALLOW_UNREGISTERED_VOTING
@@ -10,16 +9,13 @@ from .users import has_completed_profile
 router = APIRouter(prefix="/api")
 
 
-class VoteRequest(BaseModel):
-    costume_id: int
-
-
-@router.post("/vote")
+@router.put("/costumes/{costume_id}/vote")
 def vote(
-    body: VoteRequest,
+    costume_id: int,
     user: CurrentUser = Depends(get_current_user),
     conn: sqlite3.Connection = Depends(get_db),
 ):
+    """Cast the current user's vote for a costume."""
 
     # Check if voting is open
     if get_competition_status(conn) != "voting":
@@ -34,7 +30,7 @@ def vote(
 
     # Verify costume exists and is not the user's own
     costume = conn.execute(
-        "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
+        "SELECT id, user_id FROM costumes WHERE id = ?", (costume_id,)
     ).fetchone()
     if not costume:
         raise HTTPException(status_code=404, detail="Costume not found")
@@ -44,19 +40,18 @@ def vote(
     # Use a transaction to ensure vote count integrity
     conn.execute("BEGIN IMMEDIATE")
     try:
-        # Check if user has already voted for this costume
+        # Already voted for this costume → idempotent no-op success
         existing = conn.execute(
             "SELECT id FROM votes WHERE voter_id = ? AND voted_user_id = ?",
             (user["user_id"], costume["user_id"]),
         ).fetchone()
-        if existing:
-            raise HTTPException(
-                status_code=400, detail="Already voted for this costume"
-            )
-        # Check if user has remaining votes
         count = conn.execute(
             "SELECT COUNT(*) as cnt FROM votes WHERE voter_id = ?", (user["user_id"],)
         ).fetchone()["cnt"]
+        if existing:
+            conn.commit()
+            return {"success": True, "votes_remaining": MAX_VOTES_PER_USER - count}
+        # Check if user has remaining votes
         if count >= MAX_VOTES_PER_USER:
             raise HTTPException(
                 status_code=400,
@@ -76,44 +71,32 @@ def vote(
     return {"success": True, "votes_remaining": MAX_VOTES_PER_USER - count - 1}
 
 
-@router.post("/unvote")
+@router.delete("/costumes/{costume_id}/vote", status_code=204)
 def unvote(
-    body: VoteRequest,
+    costume_id: int,
     user: CurrentUser = Depends(get_current_user),
     conn: sqlite3.Connection = Depends(get_db),
 ):
+    """Remove the current user's vote for a costume. Idempotent: removing a
+    vote that does not exist still succeeds with 204 (DELETE semantics).
+    404 only if the costume itself does not exist."""
 
     if get_competition_status(conn) != "voting":
         raise HTTPException(status_code=403, detail="Voting is not open")
 
     costume = conn.execute(
-        "SELECT id, user_id FROM costumes WHERE id = ?", (body.costume_id,)
+        "SELECT id, user_id FROM costumes WHERE id = ?", (costume_id,)
     ).fetchone()
     if not costume:
         raise HTTPException(status_code=404, detail="Costume not found")
-
-    existing = conn.execute(
-        "SELECT id FROM votes WHERE voter_id = ? AND voted_user_id = ?",
-        (user["user_id"], costume["user_id"]),
-    ).fetchone()
-    if not existing:
-        raise HTTPException(
-            status_code=404,
-            detail="Cannot remove vote from costume that was not voted.",
-        )
 
     conn.execute(
         "DELETE FROM votes WHERE voter_id = ? AND voted_user_id = ?",
         (user["user_id"], costume["user_id"]),
     )
-
-    count = conn.execute(
-        "SELECT COUNT(*) as cnt FROM votes WHERE voter_id = ?", (user["user_id"],)
-    ).fetchone()["cnt"]
-
     conn.commit()
 
-    return {"success": True, "votes_remaining": MAX_VOTES_PER_USER - count}
+    return Response(status_code=204)
 
 
 @router.get("/results")

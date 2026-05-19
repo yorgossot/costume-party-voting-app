@@ -170,13 +170,13 @@ var Vote = {
 
     var promise = isVoted ? API.unvote(costumeId) : API.vote(costumeId);
 
-    promise.then(function(res) {
+    promise.then(function() {
       if (isVoted) {
         delete self.votedIds[costumeId];
       } else {
         self.votedIds[costumeId] = true;
       }
-      self.votesUsed = 5 - res.votes_remaining;
+      self.votesUsed = Object.keys(self.votedIds).length;
       self.render();
       self.updateModalVoteState(costumeId);
     }).catch(function(err) {

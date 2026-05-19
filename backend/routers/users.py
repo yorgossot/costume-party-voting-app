@@ -11,8 +11,9 @@ router = APIRouter(prefix="/api")
 USER_FIELDS = {"display_name", "dressed_up_as"}
 
 
-class UserFieldRequest(BaseModel):
-    value: str
+class UserPatchRequest(BaseModel):
+    display_name: str | None = None
+    dressed_up_as: str | None = None
 
 
 # -----------------------------------
@@ -20,25 +21,25 @@ class UserFieldRequest(BaseModel):
 # -----------------------------------
 
 
-@router.post("/select-display-name")
-def select_display_name(
-    body: UserFieldRequest,
+@router.patch("/users/me")
+def update_me(
+    body: UserPatchRequest,
     user: CurrentUser = Depends(get_current_user),
     conn: sqlite3.Connection = Depends(get_db),
 ):
-    return _set_user_field("display_name", body.value, user, conn)
+    """Partially update the current user's profile. Send any subset of
+    {display_name, dressed_up_as}; only the provided fields are changed."""
+    updates = {k: v for k, v in body.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="No fields to update")
+
+    result: dict = {"user_id": user["user_id"]}
+    for field, value in updates.items():
+        result.update(_set_user_field(field, value, user, conn))
+    return result
 
 
-@router.post("/select-dressed-up-as")
-def select_dressed_up_as(
-    body: UserFieldRequest,
-    user: CurrentUser = Depends(get_current_user),
-    conn: sqlite3.Connection = Depends(get_db),
-):
-    return _set_user_field("dressed_up_as", body.value, user, conn)
-
-
-@router.get("/me")
+@router.get("/users/me")
 def me(
     user: CurrentUser = Depends(get_current_user),
     conn: sqlite3.Connection = Depends(get_db),

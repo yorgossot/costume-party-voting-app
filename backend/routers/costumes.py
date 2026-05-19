@@ -36,7 +36,7 @@ def generate_thumbnail(source_path: Path):
     img.save(thumb_path, "JPEG", quality=THUMB_QUALITY)
 
 
-@router.post("/upload-costume")
+@router.put("/users/me/costume")
 async def upload_costume(
     file: UploadFile = File(...),
     user: CurrentUser = Depends(get_current_user),

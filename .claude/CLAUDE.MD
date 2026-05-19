@@ -108,23 +108,30 @@ CREATE TABLE settings (
 
 ## API Endpoints
 
+> **REST conventions**: Resource-oriented paths, proper HTTP verbs. `POST`
+> creates, `PUT` replaces/sets (idempotent), `PATCH` partially updates,
+> `DELETE` removes (idempotent — removing an absent thing still succeeds with
+> `204`; `404` only if the *parent* resource is missing). No backward-compat
+> aliases — the old RPC-style endpoints were removed.
+
 ### Authentication (`/api`)
-- `POST /login` - Login with access code (passwordless)
+- `POST /sessions` - Create a session (login with access code, passwordless)
   - Body: `{access_code: string}`
-  - Returns: `{token: string, user_id: int, is_admin: bool}`
+  - Returns `201`: `{token: string, user_id: int, is_admin: bool}`
+  - `401` on invalid access code
 
 ### User Profile (`/api`)
-- `GET /me` - Get current user info, costume, and votes
+- `GET /users/me` - Get current user info, costume, and votes
   - Returns: `{user_id, access_code, display_name, dressed_up_as, is_admin, costume: {id, photo_url} | null, votes_used, voted_costume_ids: int[]}`
-- `POST /select-display-name` - Set/update display name
-  - Body: `{value: string}` (4-30 chars)
-  - Can only change during 'setup' phase after first set
-- `POST /select-dressed-up-as` - Set/update costume description
-  - Body: `{value: string}` (4-30 chars)
-  - Can only change during 'setup' phase after first set
+- `PATCH /users/me` - Partially update profile (authenticated)
+  - Body: any subset of `{display_name: string, dressed_up_as: string}` (each 4-30 chars)
+  - Only the provided fields are changed; `400` if body is empty
+  - Each field can only change during 'setup' phase after first set
+  - Returns: `{user_id, ...updated fields}`
 
 ### Costumes (`/api`)
-- `POST /upload-costume` - Upload costume photo (authenticated)
+- `PUT /users/me/costume` - Upload/replace costume photo (authenticated)
+  - Costume is a per-user singleton; PUT replaces any existing one
   - Requires display_name and dressed_up_as to be set first
   - Can only replace costume during 'setup' phase
   - Multipart form-data with image file
@@ -134,39 +141,40 @@ CREATE TABLE settings (
   - Vote counts hidden (commented out in code)
 
 ### Voting (`/api`)
-- `POST /vote` - Submit vote (authenticated, max 5 votes)
-  - Body: `{costume_id: int}`
+- `PUT /costumes/{costume_id}/vote` - Cast vote (authenticated, max 5 votes)
+  - No body; `costume_id` is in the path. Vote is a sub-resource of a costume
+  - Idempotent: voting for an already-voted costume is a no-op success
   - Validates: voting is open, user has profile+costume, not voting for self, under vote limit
   - Returns: `{success: true, votes_remaining: int}`
-- `POST /unvote` - Remove vote (authenticated)
-  - Body: `{costume_id: int}`
-  - Returns: `{success: true, votes_remaining: int}`
+- `DELETE /costumes/{costume_id}/vote` - Remove vote (authenticated)
+  - Idempotent: returns `204` even if the vote did not exist
+  - `404` only if the costume itself does not exist
 - `GET /results` - Get vote counts and leaderboard
-  - Only available when competition_status is 'reveal'
+  - Only available when competition_status is 'reveal' (`403` otherwise)
   - Returns top 3 costumes only (LIMIT 3)
   - Returns: `[{costume_id, access_code, display_name, dressed_up_as, photo_url, thumb_url, vote_count}]` (sorted by votes DESC)
 
-### Admin (`/api`)
-- `GET /competition-status` - Get current competition status (public)
+### Competition & Admin (`/api`)
+- `GET /competition` - Get current competition status (public)
   - Returns: `{status: 'setup' | 'voting' | 'counting' | 'reveal'}`
-- `POST /admin/advance-status` - Move to next phase (admin only)
+- `PUT /competition/status` - Set the competition phase (admin only)
+  - Body: `{status: string}` (explicit target value; idempotent)
+  - To "advance", the client sends the next state in `COMPETITION_STATES`
   - Returns: `{status: string, previous: string}`
-- `POST /admin/set-status` - Set specific phase (admin only)
-  - Body: `{status: string}`
-  - Returns: `{status: string, previous: string}`
-- `GET /admin/purge-available` - Check if purge is enabled (admin only)
-  - Returns: `{available: bool}`
-  - Disabled during party week (Feb 20-27, 2026)
-- `POST /admin/purge` - Reset app to clean state (admin only)
+- `GET /admin/data` - State of the purgeable data set (admin only)
+  - Returns: `{purge_available: bool, votes: int, costumes: int}`
+  - `purge_available` is `false` during party week (Feb 20-27, 2026)
+- `DELETE /admin/data` - Reset app to clean state (admin only)
   - Deletes all votes, costumes, photo files, resets profiles and status
+  - `403` during party week
   - Returns: `{purged: true, votes_deleted: int, costumes_deleted: int, files_deleted: int}`
-- `GET /admin/user-lookup` - Look up a user by access code (admin only)
-  - Query param: `access_code=string`
-  - Returns: `{user_id, display_name, dressed_up_as, has_costume}`
-- `POST /admin/reset-user-field` - Reset a specific field for a user (admin only)
-  - Body: `{user_id: int, field: 'display_name' | 'dressed_up_as' | 'photo'}`
-- `POST /admin/purge-user` - Purge a specific user's data (admin only)
-  - Body: `{user_id: int}`
+- `GET /admin/users/{access_code}` - Look up a user by access code (admin only)
+  - Returns: `{user_id, display_name, dressed_up_as, has_photo, votes_cast, votes_received}`
+  - `404` if no such user
+- `DELETE /admin/users/{access_code}/fields/{field}` - Reset one field (admin only)
+  - `field` ∈ `display_name | dressed_up_as | photo`; returns `204`
+- `DELETE /admin/users/{access_code}/data` - Purge a user's data (admin only)
+  - Removes their costume and all votes (cast & received), resets profile; returns `204`
 
 ### Protected JavaScript (`/js`)
 - `GET /js/admin.js` - Admin panel JavaScript (admin auth required)

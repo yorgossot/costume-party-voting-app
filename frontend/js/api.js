@@ -11,10 +11,13 @@ var API = {
 
     var self = this;
     return fetch('/api' + path, opts).then(function(res) {
-      if (res.status === 401 && path !== '/login') {
+      // Don't auto-logout on a failed login attempt (POST /sessions itself)
+      if (res.status === 401 && path !== '/sessions') {
         self.logout();
         return Promise.reject({ status: 401, detail: 'Session expired' });
       }
+      // 204 No Content (idempotent DELETEs) — no body to parse
+      if (res.status === 204) return null;
       return res.json().then(function(data) {
         if (!res.ok) return Promise.reject({ status: res.status, detail: data.detail || 'Something went wrong' });
         return data;
@@ -24,11 +27,13 @@ var API = {
 
   get: function(path) { return this.request('GET', path); },
   post: function(path, body) { return this.request('POST', path, body); },
+  put: function(path, body) { return this.request('PUT', path, body); },
+  patch: function(path, body) { return this.request('PATCH', path, body); },
   del: function(path) { return this.request('DELETE', path); },
-  upload: function(path, formData) { return this.request('POST', path, formData, true); },
+  upload: function(path, formData) { return this.request('PUT', path, formData, true); },
 
   // Auth
-  login: function(code) { return this.post('/login', { access_code: code }); },
+  login: function(code) { return this.post('/sessions', { access_code: code }); },
 
   // Load a protected script dynamically (fetched with auth, then executed)
   loadScript: function(src) {

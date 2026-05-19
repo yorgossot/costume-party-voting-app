@@ -1,11 +1,10 @@
 // Admin API methods — loaded dynamically for admins only
-API.advanceStatus = function() { return this.post('/admin/advance-status'); };
-API.setStatus = function(status) { return this.post('/admin/set-status', { status: status }); };
-API.purge = function() { return this.post('/admin/purge'); };
-API.purgeAvailable = function() { return this.get('/admin/purge-available'); };
-API.userLookup = function(code) { return this.get('/admin/user-lookup?access_code=' + encodeURIComponent(code)); };
-API.resetUserField = function(code, field) { return this.post('/admin/reset-user-field', { access_code: code, field: field }); };
-API.purgeUser = function(code) { return this.post('/admin/purge-user', { access_code: code }); };
+API.setStatus = function(status) { return this.put('/competition/status', { status: status }); };
+API.purge = function() { return this.del('/admin/data'); };
+API.purgeAvailable = function() { return this.get('/admin/data').then(function(d) { return d.purge_available; }); };
+API.userLookup = function(code) { return this.get('/admin/users/' + encodeURIComponent(code)); };
+API.resetUserField = function(code, field) { return this.del('/admin/users/' + encodeURIComponent(code) + '/fields/' + field); };
+API.purgeUser = function(code) { return this.del('/admin/users/' + encodeURIComponent(code) + '/data'); };
 
 var Admin = {
   STATES: ['setup', 'voting', 'counting', 'reveal'],
@@ -30,7 +29,7 @@ var Admin = {
       API.getCompetitionStatus(),
       API.purgeAvailable()
     ]).then(function(results) {
-      self.render(results[0].status, results[1].available);
+      self.render(results[0].status, results[1]);
     });
   },
 
@@ -93,7 +92,7 @@ var Admin = {
     // Attach listeners
     var advanceBtn = document.getElementById('btn-advance');
     if (advanceBtn) {
-      advanceBtn.addEventListener('click', function() { self.advance(); });
+      advanceBtn.addEventListener('click', function() { self.advance(self.STATES[idx + 1]); });
     }
     var goBackBtn = document.getElementById('btn-go-back');
     if (goBackBtn) {
@@ -108,9 +107,9 @@ var Admin = {
     }
   },
 
-  advance: function() {
+  advance: function(nextStatus) {
     var self = this;
-    API.advanceStatus().then(function(data) {
+    API.setStatus(nextStatus).then(function(data) {
       showToast('Advanced to ' + self.STATE_INFO[data.status].label, 'success');
       self.load();
     }).catch(function(err) {

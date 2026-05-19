@@ -1,12 +1,14 @@
 import sqlite3
 from datetime import datetime, timezone, timedelta
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
 from typing import Literal
 
 from auth import require_admin
 from config import COMPETITION_STATES, COSTUMES_DIR
 from database import get_db, get_competition_status
+
+UserField = Literal["display_name", "dressed_up_as", "photo"]
 
 ATHENS_TZ = timezone(timedelta(hours=2))
 PARTY_START = datetime(2026, 2, 20, 18, 0, tzinfo=ATHENS_TZ)  # Friday 6pm Greek time
@@ -19,42 +21,22 @@ class SetStatusRequest(BaseModel):
     status: str
 
 
-class ResetUserFieldRequest(BaseModel):
-    access_code: str
-    field: Literal["display_name", "dressed_up_as", "photo"]
+def _purge_available() -> bool:
+    return not (PARTY_START <= datetime.now(ATHENS_TZ) < PARTY_END)
 
 
-class PurgeUserRequest(BaseModel):
-    access_code: str
-
-
-@router.get("/competition-status")
-def competition_status(conn: sqlite3.Connection = Depends(get_db)):
+@router.get("/competition")
+def competition(conn: sqlite3.Connection = Depends(get_db)):
     return {"status": get_competition_status(conn)}
 
 
-@router.post("/admin/advance-status", dependencies=[Depends(require_admin)])
-def advance_status(conn: sqlite3.Connection = Depends(get_db)):
-    current = get_competition_status(conn)
-    idx = COMPETITION_STATES.index(current)
-
-    if idx >= len(COMPETITION_STATES) - 1:
-        raise HTTPException(status_code=400, detail="Already at final state")
-
-    new_status = COMPETITION_STATES[idx + 1]
-    conn.execute(
-        "UPDATE settings SET value = ? WHERE key = 'competition_status'",
-        (new_status,),
-    )
-    conn.commit()
-    return {"status": new_status, "previous": current}
-
-
-@router.post("/admin/set-status", dependencies=[Depends(require_admin)])
-def set_status(
+@router.put("/competition/status", dependencies=[Depends(require_admin)])
+def set_competition_status(
     body: SetStatusRequest,
     conn: sqlite3.Connection = Depends(get_db),
 ):
+    """Set the competition phase to an explicit value (idempotent).
+    To 'advance', the client sends the next state in COMPETITION_STATES."""
     if body.status not in COMPETITION_STATES:
         raise HTTPException(
             status_code=400,
@@ -70,13 +52,19 @@ def set_status(
     return {"status": body.status, "previous": current}
 
 
-@router.get("/admin/purge-available", dependencies=[Depends(require_admin)])
-def purge_available():
-    now = datetime.now(ATHENS_TZ)
-    return {"available": not (PARTY_START <= now < PARTY_END)}
+@router.get("/admin/data", dependencies=[Depends(require_admin)])
+def admin_data(conn: sqlite3.Connection = Depends(get_db)):
+    """State of the purgeable data set, including whether DELETE is allowed."""
+    votes = conn.execute("SELECT COUNT(*) FROM votes").fetchone()[0]
+    costumes = conn.execute("SELECT COUNT(*) FROM costumes").fetchone()[0]
+    return {
+        "purge_available": _purge_available(),
+        "votes": votes,
+        "costumes": costumes,
+    }
 
 
-@router.post("/admin/purge", dependencies=[Depends(require_admin)])
+@router.delete("/admin/data", dependencies=[Depends(require_admin)])
 def purge(conn: sqlite3.Connection = Depends(get_db)):
     """Reset the app to a clean state for testing. Deletes all votes, costumes
     (including photo files), and resets user profiles and competition status.
@@ -84,7 +72,7 @@ def purge(conn: sqlite3.Connection = Depends(get_db)):
     Automatically disabled between PARTY_START and PARTY_END to prevent
     accidental use during the party.
     """
-    if PARTY_START <= datetime.now(ATHENS_TZ) < PARTY_END:
+    if not _purge_available():
         raise HTTPException(
             status_code=403,
             detail="Purge is disabled during the party (Friday 6pm to next Friday 6pm Greek time)",
@@ -135,7 +123,7 @@ def _get_user_by_access_code(access_code: str, conn: sqlite3.Connection):
     return user
 
 
-@router.get("/admin/user-lookup", dependencies=[Depends(require_admin)])
+@router.get("/admin/users/{access_code}", dependencies=[Depends(require_admin)])
 def user_lookup(access_code: str, conn: sqlite3.Connection = Depends(get_db)):
     user = _get_user_by_access_code(access_code, conn)
     costume = conn.execute(
@@ -157,17 +145,20 @@ def user_lookup(access_code: str, conn: sqlite3.Connection = Depends(get_db)):
     }
 
 
-@router.post("/admin/reset-user-field", dependencies=[Depends(require_admin)])
+@router.delete(
+    "/admin/users/{access_code}/fields/{field}",
+    status_code=204,
+    dependencies=[Depends(require_admin)],
+)
 def reset_user_field(
-    body: ResetUserFieldRequest,
+    access_code: str,
+    field: UserField,
     conn: sqlite3.Connection = Depends(get_db),
 ):
-    user = _get_user_by_access_code(body.access_code, conn)
+    user = _get_user_by_access_code(access_code, conn)
 
-    if body.field in ("display_name", "dressed_up_as"):
-        conn.execute(
-            f"UPDATE users SET {body.field} = NULL WHERE id = ?", (user["id"],)
-        )
+    if field in ("display_name", "dressed_up_as"):
+        conn.execute(f"UPDATE users SET {field} = NULL WHERE id = ?", (user["id"],))
     else:  # photo
         costume = conn.execute(
             "SELECT photo_filename FROM costumes WHERE user_id = ?", (user["id"],)
@@ -182,15 +173,19 @@ def reset_user_field(
             conn.execute("DELETE FROM costumes WHERE user_id = ?", (user["id"],))
 
     conn.commit()
-    return {"reset": True, "field": body.field, "user_id": user["id"]}
+    return Response(status_code=204)
 
 
-@router.post("/admin/purge-user", dependencies=[Depends(require_admin)])
+@router.delete(
+    "/admin/users/{access_code}/data",
+    status_code=204,
+    dependencies=[Depends(require_admin)],
+)
 def purge_user(
-    body: PurgeUserRequest,
+    access_code: str,
     conn: sqlite3.Connection = Depends(get_db),
 ):
-    user = _get_user_by_access_code(body.access_code, conn)
+    user = _get_user_by_access_code(access_code, conn)
     user_id = user["id"]
 
     conn.execute("DELETE FROM votes WHERE voter_id = ?", (user_id,))
@@ -213,4 +208,4 @@ def purge_user(
         (user_id,),
     )
     conn.commit()
-    return {"purged": True, "user_id": user_id}
+    return Response(status_code=204)

@@ -55,8 +55,9 @@ def require_admin(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
     return user
 
 
-@router.post("/login")
-def login(body: LoginRequest, conn: sqlite3.Connection = Depends(get_db)):
+@router.post("/sessions", status_code=201)
+def create_session(body: LoginRequest, conn: sqlite3.Connection = Depends(get_db)):
+    """Create an authenticated session (exchange an access code for a JWT)."""
     row = conn.execute(
         "SELECT id, is_admin FROM users WHERE access_code = ?", (body.access_code,)
     ).fetchone()
